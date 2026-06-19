@@ -59,7 +59,7 @@ CareerOS is built with clean, state-of-the-art Flutter architectural patterns co
 ### 2. Standard Build
 ```bash
 # Clone the repository
-git clone https://github.com/your-repo/careeros.git
+git clone https://github.com/careerOS/careeros.git
 cd careeros
 
 # Fetch system dependencies
