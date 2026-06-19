@@ -1,0 +1,16 @@
+{
+  "appTitle": "CareerOS",
+  "welcomeBack": "Welcome Back, {name} 👋",
+  "@welcomeBack": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "todayTargets": "Today’s Targets",
+  "chatAssistant": "AI Career Assistant",
+  "roadmap": "Career Roadmap",
+  "progress": "My Progress",
+  "profile": "Profile"
+}
