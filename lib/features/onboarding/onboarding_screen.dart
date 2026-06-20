@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:ui';
+import 'package:permission_handler/permission_handler.dart';
 import '../../core/persistence/preferences_service.dart';
 import '../../core/providers/settings_provider.dart';
 import '../../core/theme/glass_theme.dart';
@@ -31,6 +32,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _checkPermissions();
+
+    // Show restricted settings guide immediately on launch
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showRestrictedSettingsDialog(isAuto: true);
+    });
   }
 
   @override
@@ -61,41 +67,82 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
     }
   }
 
-  void _showRestrictedSettingsDialog() {
+  void _showRestrictedSettingsDialog({bool isAuto = false}) {
     showDialog(
       context: context,
+      barrierDismissible: !isAuto, // Force user to interact if it's the first time
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.cyanAccent.withOpacity(0.2))),
         title: const Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.orangeAccent),
-            SizedBox(width: 10),
-            Text("Enable Settings", style: TextStyle(color: Colors.white)),
+            Icon(Icons.security_update_warning_rounded, color: Colors.orangeAccent, size: 28),
+            SizedBox(width: 12),
+            Expanded(child: Text("Critical: Enable App", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
           ],
         ),
-        content: const Column(
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              "Android 13+ requires an extra step for APK installs:",
-              style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold),
+            const Text(
+              "Since you installed this APK manually, Android has restricted its permissions.",
+              style: TextStyle(color: Colors.white70, fontSize: 14),
             ),
-            SizedBox(height: 15),
-            Text("1. Go to Phone Settings > Apps", style: TextStyle(color: Colors.white60)),
-            Text("2. Select 'careerOS'", style: TextStyle(color: Colors.white60)),
-            Text("3. Tap (⋮) in the top right corner", style: TextStyle(color: Colors.white60)),
-            Text("4. Tap 'Allow restricted settings'", style: TextStyle(color: Colors.white60)),
-            SizedBox(height: 15),
-            Text("After this, you can enable these permissions.", style: TextStyle(color: Colors.cyanAccent, fontSize: 12)),
+            const SizedBox(height: 20),
+            _stepRow("1", "Click 'OPEN SETTINGS' below"),
+            _stepRow("2", "Tap the 3-dots (⋮) at the top right"),
+            _stepRow("3", "Select 'Allow restricted settings'"),
+            _stepRow("4", "Verify with Fingerprint/PIN"),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.cyanAccent.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text(
+                "Without this, Zen Mode & Digital Wellbeing will NOT work.",
+                style: TextStyle(color: Colors.cyanAccent, fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+            ),
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("I UNDERSTAND", style: TextStyle(color: Colors.cyanAccent)),
+          if (!isAuto)
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("CLOSE", style: TextStyle(color: Colors.white38)),
+            ),
+          ElevatedButton(
+            onPressed: () {
+              openAppSettings();
+              if (!isAuto) Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.cyanAccent,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text("OPEN SETTINGS", style: TextStyle(fontWeight: FontWeight.bold)),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _stepRow(String number, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 10,
+            backgroundColor: Colors.white10,
+            child: Text(number, style: const TextStyle(color: Colors.cyanAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Text(text, style: const TextStyle(color: Colors.white60, fontSize: 13))),
         ],
       ),
     );
