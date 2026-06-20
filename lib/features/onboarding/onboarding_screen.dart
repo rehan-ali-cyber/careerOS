@@ -26,6 +26,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
   bool _hasUsage = false;
   bool _hasDnd = false;
   bool _hasOverlay = false;
+  bool _isDialogShowing = false;
 
   @override
   void initState() {
@@ -64,13 +65,22 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
         _hasDnd = dnd;
         _hasOverlay = overlay;
       });
+
+      // Automatic dismissal if all permissions are granted
+      if (usage && dnd && overlay && _isDialogShowing) {
+        Navigator.of(context, rootNavigator: true).pop();
+        _isDialogShowing = false;
+      }
     }
   }
 
   void _showRestrictedSettingsDialog({bool isAuto = false}) {
+    if (_isDialogShowing) return;
+    _isDialogShowing = true;
+
     showDialog(
       context: context,
-      barrierDismissible: !isAuto, // Force user to interact if it's the first time
+      barrierDismissible: true, // Always allow clicking outside to close
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
         shape: RoundedRectangleBorder(
@@ -81,7 +91,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
           children: [
             Icon(Icons.security_update_warning_rounded, color: Colors.orangeAccent, size: 28),
             SizedBox(width: 12),
-            Expanded(child: Text("Critical: Enable App", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
+            Expanded(child: Text("Enable App Settings", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
           ],
         ),
         content: Column(
@@ -89,14 +99,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              "Since you installed this APK manually, Android has restricted its permissions.",
+              "Android 13+ restricts permissions for apps installed via APK.",
               style: TextStyle(color: Colors.white70, fontSize: 14),
             ),
             const SizedBox(height: 20),
             _stepRow("1", "Click 'OPEN SETTINGS' below"),
             _stepRow("2", "Tap the 3-dots (⋮) at the top right"),
             _stepRow("3", "Select 'Allow restricted settings'"),
-            _stepRow("4", "Verify with Fingerprint/PIN"),
+            _stepRow("4", "Return to app to enable permissions"),
             const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.all(12),
@@ -105,22 +115,24 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Text(
-                "Without this, Zen Mode & Digital Wellbeing will NOT work.",
+                "Required for Zen Mode & Digital Wellbeing.",
                 style: TextStyle(color: Colors.cyanAccent, fontSize: 12, fontWeight: FontWeight.w600),
               ),
             ),
           ],
         ),
         actions: [
-          if (!isAuto)
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("CLOSE", style: TextStyle(color: Colors.white38)),
-            ),
+          TextButton(
+            onPressed: () {
+              _isDialogShowing = false;
+              Navigator.pop(context);
+            },
+            child: const Text("MAYBE LATER", style: TextStyle(color: Colors.white38)),
+          ),
           ElevatedButton(
             onPressed: () {
               openAppSettings();
-              if (!isAuto) Navigator.pop(context);
+              // Don't close dialog yet, let the lifecycle check handle it or user can close manually
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.cyanAccent,
@@ -131,7 +143,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
           ),
         ],
       ),
-    );
+    ).then((_) => _isDialogShowing = false);
   }
 
   Widget _stepRow(String number, String text) {
