@@ -61,6 +61,46 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
     }
   }
 
+  void _showRestrictedSettingsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.orangeAccent),
+            SizedBox(width: 10),
+            Text("Enable Settings", style: TextStyle(color: Colors.white)),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Android 13+ requires an extra step for APK installs:",
+              style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 15),
+            Text("1. Go to Phone Settings > Apps", style: TextStyle(color: Colors.white60)),
+            Text("2. Select 'careerOS'", style: TextStyle(color: Colors.white60)),
+            Text("3. Tap (⋮) in the top right corner", style: TextStyle(color: Colors.white60)),
+            Text("4. Tap 'Allow restricted settings'", style: TextStyle(color: Colors.white60)),
+            SizedBox(height: 15),
+            Text("After this, you can enable these permissions.", style: TextStyle(color: Colors.cyanAccent, fontSize: 12)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("I UNDERSTAND", style: TextStyle(color: Colors.cyanAccent)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _completeOnboarding() async {
     final name = _nameController.text.trim();
     final career = _careerController.text.trim();
@@ -173,21 +213,30 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
               subtitle: "Tracks focus metrics",
               icon: Icons.bar_chart_rounded,
               isGranted: _hasUsage,
-              onTap: () => UsageStats.grantUsagePermission(),
+              onTap: () async {
+                await UsageStats.grantUsagePermission();
+                _showRestrictedSettingsDialog();
+              },
             ),
             _PermissionTile(
               title: "Do Not Disturb",
               subtitle: "Silences notifications",
               icon: Icons.do_not_disturb_on_rounded,
               isGranted: _hasDnd,
-              onTap: () => LockdownService.requestDndAccess(),
+              onTap: () async {
+                await LockdownService.requestDndAccess();
+                _showRestrictedSettingsDialog();
+              },
             ),
             _PermissionTile(
               title: "System Overlay",
               subtitle: "Enforces focus lock",
               icon: Icons.layers_rounded,
               isGranted: _hasOverlay,
-              onTap: () => LockdownService.requestOverlayAccess(),
+              onTap: () async {
+                await LockdownService.requestOverlayAccess();
+                _showRestrictedSettingsDialog();
+              },
             ),
             const SizedBox(height: 48),
             SizedBox(
