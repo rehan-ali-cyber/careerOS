@@ -73,7 +73,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
       barrierDismissible: !isAuto, // Force user to interact if it's the first time
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.cyanAccent.withOpacity(0.2))),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: Colors.cyanAccent.withOpacity(0.2)),
+        ),
         title: const Row(
           children: [
             Icon(Icons.security_update_warning_rounded, color: Colors.orangeAccent, size: 28),
