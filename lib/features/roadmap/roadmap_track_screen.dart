@@ -5,8 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/persistence/app_database.dart';
 import '../../core/providers/database_provider.dart';
-import '../../core/theme/glass_theme.dart';
-import '../../core/widgets/beautiful_background.dart';
+import '../../core/widgets/neomorphic/neumorphic_container.dart';
 import '../../core/providers/attendance_provider.dart';
 import '../chat/providers/career_pilot_provider.dart';
 
@@ -20,27 +19,38 @@ class RoadmapTrackScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     return Scaffold(
       extendBodyBehindAppBar: true,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: _buildBackButton(context),
-        title: Text(path.title.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w200, color: Colors.white, fontSize: 16, letterSpacing: 3)),
+        title: Text(path.title.toUpperCase(),
+            style: TextStyle(
+                fontWeight: FontWeight.w200,
+                color: theme.colorScheme.onSurface,
+                fontSize: 16,
+                letterSpacing: 3)),
       ),
-      body: Stack(
-        children: [
-          const Positioned.fill(child: BeautifulBackground()),
-          _MovableVoyageTrack(path: path),
-        ],
-      ),
+      body: _MovableVoyageTrack(path: path),
     );
   }
 
   Widget _buildBackButton(BuildContext context) {
-    return IconButton(
-      icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white24, size: 20),
-      onPressed: () => Navigator.pop(context),
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: NeumorphicContainer(
+        shape: BoxShape.circle,
+        depth: 4,
+        child: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded,
+              color: theme.colorScheme.onSurface, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
     );
   }
 }
@@ -92,6 +102,7 @@ class _MovableVoyageTrackState extends ConsumerState<_MovableVoyageTrack> {
                         painter: VoyageRoadPainter(
                           stepsCount: steps.length,
                           completedCount: completedCount,
+                          context: context,
                         ),
                       ),
                     ),
@@ -121,19 +132,22 @@ class _MovableVoyageTrackState extends ConsumerState<_MovableVoyageTrack> {
   }
 
   Widget _buildTerminalNode(int count) {
+    final theme = Theme.of(context);
     return Positioned(
       top: -60,
       left: 0,
       right: 0,
       child: Center(
-        child: Container(
+        child: NeumorphicContainer(
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: Colors.white10),
-          ),
-          child: const Text("VOYAGE ORIGIN", style: TextStyle(color: Colors.white12, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 2)),
+          borderRadius: 15,
+          depth: 2,
+          child: Text("VOYAGE ORIGIN",
+              style: TextStyle(
+                  color: theme.colorScheme.onSurface.withOpacity(0.12),
+                  fontSize: 9,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2)),
         ),
       ),
     );
@@ -239,35 +253,36 @@ class _ManeuverCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(22),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.03),
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: Colors.white.withOpacity(0.06)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+    final theme = Theme.of(context);
+    return NeumorphicContainer(
+      borderRadius: 22,
+      depth: 6,
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              step.title.toUpperCase(),
+              style: TextStyle(
+                  color: theme.colorScheme.onSurface,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 13,
+                  letterSpacing: 0.5),
+            ),
+            if (step.description != null) ...[
+              const SizedBox(height: 6),
               Text(
-                step.title.toUpperCase(),
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
+                step.description!,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    color: theme.colorScheme.onSurface.withOpacity(0.3),
+                    fontSize: 10,
+                    height: 1.4),
               ),
-              if (step.description != null) ...[
-                const SizedBox(height: 6),
-                Text(
-                  step.description!,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 10, height: 1.4),
-                ),
-              ],
             ],
-          ),
+          ],
         ),
       ),
     );
@@ -277,20 +292,26 @@ class _ManeuverCard extends StatelessWidget {
 class VoyageRoadPainter extends CustomPainter {
   final int stepsCount;
   final int completedCount;
-  VoyageRoadPainter({required this.stepsCount, required this.completedCount});
+  final BuildContext context;
+
+  VoyageRoadPainter(
+      {required this.stepsCount,
+      required this.completedCount,
+      required this.context});
 
   @override
   void paint(Canvas canvas, Size size) {
     if (stepsCount == 0) return;
 
+    final theme = Theme.of(context);
     final paint = Paint()
-      ..color = Colors.white.withOpacity(0.03)
+      ..color = theme.colorScheme.onSurface.withOpacity(0.03)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 70
       ..strokeCap = StrokeCap.round;
 
     final progressPaint = Paint()
-      ..color = Colors.cyanAccent.withOpacity(0.1)
+      ..color = theme.colorScheme.primary.withOpacity(0.1)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 70
       ..strokeCap = StrokeCap.round;
@@ -323,7 +344,7 @@ class VoyageRoadPainter extends CustomPainter {
 
     // High-End Dashed Center Line
     final dashPaint = Paint()
-      ..color = Colors.white.withOpacity(0.08)
+      ..color = theme.colorScheme.onSurface.withOpacity(0.08)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
     _drawDashedVoyagePath(canvas, path, dashPaint);
