@@ -9,7 +9,7 @@ import '../../core/providers/database_provider.dart';
 import '../../core/providers/settings_provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../chat/providers/career_pilot_provider.dart';
-import '../../core/theme/glass_theme.dart';
+import '../../core/widgets/neomorphic/neumorphic_container.dart';
 import '../../core/providers/drawer_provider.dart';
 import 'roadmap_track_screen.dart';
 import 'create_roadmap_screen.dart';
@@ -21,56 +21,55 @@ class RoadmapScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final db = ref.watch(databaseProvider);
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        // Menu icon removed - Sidebar exclusive to Chat
-        flexibleSpace: ClipRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(color: Colors.white.withOpacity(0.05)),
-          ),
-        ),
-        title: Text(l10n.roadmap, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        title: Text(l10n.roadmap, style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface)),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 90.0), // Lift above the custom glass nav bar
-        child: FloatingActionButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const CreateRoadmapScreen()),
-            );
-          },
-          backgroundColor: Colors.cyanAccent,
-          child: const Icon(Icons.add, color: Colors.black),
+        child: NeumorphicContainer(
+          shape: BoxShape.circle,
+          depth: 10,
+          baseColor: theme.colorScheme.primary,
+          child: FloatingActionButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CreateRoadmapScreen()),
+              );
+            },
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: Icon(Icons.add, color: theme.brightness == Brightness.dark ? Colors.black : Colors.white),
+          ),
         ),
       ),
-      body: Container(
-        decoration: BoxDecoration(gradient: GlassTheme.waterGradient),
-        child: StreamBuilder<List<RoadmapPath>>(
-          stream: db.watchRoadmapPaths(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: Colors.white));
+      body: StreamBuilder<List<RoadmapPath>>(
+        stream: db.watchRoadmapPaths(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
-            final paths = snapshot.data!;
-            if (paths.isEmpty) {
-              return _buildEmptyState(context, ref);
-            }
+          final paths = snapshot.data!;
+          if (paths.isEmpty) {
+            return _buildEmptyState(context, ref);
+          }
 
-            return _RoadmapListView(paths: paths);
-          },
-        ),
+          return _RoadmapListView(paths: paths);
+        },
       ),
     );
   }
 
   Widget _buildEmptyState(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
+    final theme = Theme.of(context);
 
     return Center(
       child: Padding(
@@ -78,36 +77,41 @@ class RoadmapScreen extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.map_outlined, size: 80, color: Colors.white24),
+            Icon(Icons.map_outlined, size: 80, color: theme.colorScheme.onSurface.withOpacity(0.2)),
             const SizedBox(height: 20),
             Text(
               "Ready to start your journey as a ${settings.targetCareer}?",
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
             ),
             const SizedBox(height: 10),
-            const Text(
+            Text(
               "Manually create your custom voyage track to reach your goals.",
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white70),
+              style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7)),
             ),
             const SizedBox(height: 30),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white.withOpacity(0.1),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                side: BorderSide(color: Colors.white.withOpacity(0.2)),
+            NeumorphicContainer(
+              borderRadius: 24,
+              depth: 8,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  foregroundColor: theme.colorScheme.onSurface,
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                  elevation: 0,
+                  shadowColor: Colors.transparent,
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const CreateRoadmapScreen()),
+                  );
+                },
+                icon: Icon(Icons.add_road_rounded, color: theme.colorScheme.primary),
+                label: const Text("Create Your First Voyage"),
               ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const CreateRoadmapScreen()),
-                );
-              },
-              icon: const Icon(Icons.add_road_rounded, color: Colors.cyanAccent),
-              label: const Text("Create Your First Voyage"),
             ),
           ],
         ),
@@ -171,89 +175,83 @@ class _RoadmapCard extends ConsumerWidget {
   const _RoadmapCard({required this.path});
 
   void _showDeleteDialog(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     showDialog(
       context: context,
-      builder: (context) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-        child: AlertDialog(
-          backgroundColor: const Color(0xFF001220),
-          title: const Text("Delete Voyage?", style: TextStyle(color: Colors.white)),
-          content: Text("Are you sure you want to delete '${path.title}'?", style: const TextStyle(color: Colors.white70)),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Colors.white10)),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("CANCEL", style: TextStyle(color: Colors.white24)),
-            ),
-            TextButton(
-              onPressed: () {
-                ref.read(databaseProvider).deleteRoadmapPath(path.id);
-                Navigator.pop(context);
-              },
-              child: const Text("DELETE", style: TextStyle(color: Colors.redAccent)),
-            ),
-          ],
+      builder: (context) => AlertDialog(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        title: Text("Delete Voyage?", style: TextStyle(color: theme.colorScheme.onSurface)),
+        content: Text("Are you sure you want to delete '${path.title}'?", style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7))),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: theme.colorScheme.onSurface.withOpacity(0.1)),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("CANCEL", style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.3))),
+          ),
+          TextButton(
+            onPressed: () {
+              ref.read(databaseProvider).deleteRoadmapPath(path.id);
+              Navigator.pop(context);
+            },
+            child: const Text("DELETE", style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
       ),
     );
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(28),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-        child: InkWell(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => RoadmapTrackScreen(path: path),
+    final theme = Theme.of(context);
+    return NeumorphicContainer(
+      borderRadius: 28,
+      depth: 8,
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => RoadmapTrackScreen(path: path),
+            ),
+          );
+        },
+        onLongPress: () => _showDeleteDialog(context, ref),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Row(
+            children: [
+              NeumorphicContainer(
+                shape: BoxShape.circle,
+                depth: 4,
+                baseColor: theme.colorScheme.primary.withOpacity(0.1),
+                padding: const EdgeInsets.all(12),
+                child: Icon(Icons.route_rounded, color: theme.colorScheme.primary, size: 30),
               ),
-            );
-          },
-          onLongPress: () => _showDeleteDialog(context, ref),
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: Colors.white.withOpacity(0.1), width: 1.5),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.cyanAccent.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.route_rounded, color: Colors.cyanAccent, size: 30),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      path.title,
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Tap to view voyage track",
+                      style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.4), fontSize: 13),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        path.title,
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        "Tap to view voyage track",
-                        style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 13),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline_rounded, color: Colors.white24, size: 20),
-                  onPressed: () => _showDeleteDialog(context, ref),
-                ),
-              ],
-            ),
+              ),
+              IconButton(
+                icon: Icon(Icons.delete_outline_rounded, color: theme.colorScheme.onSurface.withOpacity(0.2), size: 20),
+                onPressed: () => _showDeleteDialog(context, ref),
+              ),
+            ],
           ),
         ),
       ),
