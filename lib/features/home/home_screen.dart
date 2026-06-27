@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:ui';
 import 'package:intl/intl.dart';
-import '../../l10n/app_localizations.dart';
 import '../../core/widgets/progress_card.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/persistence/preferences_service.dart';
@@ -13,6 +12,7 @@ import '../../core/widgets/neomorphic/neumorphic_container.dart';
 import '../../core/providers/attendance_provider.dart';
 import '../../core/providers/drawer_provider.dart';
 import '../../core/providers/stats_provider.dart';
+import '../../core/providers/settings_provider.dart';
 import '../calendar/widgets/day_task_dialog.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -117,6 +117,45 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ).animate().fadeIn(duration: 600.ms),
     );
   }
+
+  Widget _buildDailyBriefingHub() {
+    final userName = PreferencesService.getUserName();
+    final calibration = ref.watch(databaseProvider).watchCalibration();
+
+    return StreamBuilder<UserCalibrationData?>(
+      stream: calibration,
+      builder: (context, snapshot) {
+        final career = snapshot.data?.targetCareer ?? "Voyager";
+        final qIndex = snapshot.data?.counselingQuestionIndex ?? 0;
+
+        String briefing = "Your roadmap for $career is optimized.";
+        if (qIndex > 0 && qIndex < 31) briefing = "Currently calibrating professional DNA (Q$qIndex/30).";
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Greetings, $userName",
+              style: TextStyle(
+                  fontSize: 34,
+                  fontWeight: FontWeight.w900,
+                  color: Theme.of(context).colorScheme.onSurface,
+                  letterSpacing: -1.5),
+            ).animate().fadeIn().slideX(begin: -0.1),
+            const SizedBox(height: 4),
+            Text(
+              briefing.toUpperCase(),
+              style: TextStyle(
+                  fontSize: 10,
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.5),
+            ).animate().fadeIn(delay: 200.ms),
+          ],
+        );
+      },
+    );
+  }
 }
 
 class _LiveReadinessCard extends ConsumerWidget {
@@ -165,46 +204,6 @@ class _CurrentManeuversList extends ConsumerWidget {
         );
       },
     ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.05);
-  }
-}
-
-  Widget _buildDailyBriefingHub() {
-    final userName = PreferencesService.getUserName();
-    final calibration = ref.watch(databaseProvider).watchCalibration();
-
-    return StreamBuilder<UserCalibrationData?>(
-      stream: calibration,
-      builder: (context, snapshot) {
-        final career = snapshot.data?.targetCareer ?? "Voyager";
-        final qIndex = snapshot.data?.counselingQuestionIndex ?? 0;
-
-        String briefing = "Your roadmap for $career is optimized.";
-        if (qIndex > 0 && qIndex < 31) briefing = "Currently calibrating professional DNA (Q$qIndex/30).";
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Greetings, $userName",
-              style: TextStyle(
-                  fontSize: 34,
-                  fontWeight: FontWeight.w900,
-                  color: Theme.of(context).colorScheme.onSurface,
-                  letterSpacing: -1.5),
-            ).animate().fadeIn().slideX(begin: -0.1),
-            const SizedBox(height: 4),
-            Text(
-              briefing.toUpperCase(),
-              style: TextStyle(
-                  fontSize: 10,
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.5),
-            ).animate().fadeIn(delay: 200.ms),
-          ],
-        );
-      },
-    );
   }
 }
 
@@ -277,7 +276,8 @@ class _AttendanceBubble extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    Color color = isToday ? Colors.cyanAccent : Colors.white10;
+    final theme = Theme.of(context);
+    Color color = isToday ? theme.colorScheme.primary : theme.colorScheme.onSurface.withOpacity(0.1);
     if (status == 'completed_on_time') color = Colors.greenAccent;
     if (status == 'completed_late') color = Colors.amberAccent;
     if (status == 'missed') color = Colors.redAccent.withOpacity(0.5);
@@ -293,7 +293,7 @@ class _AttendanceBubble extends ConsumerWidget {
           borderRadius: 18,
           depth: isToday ? 4 : 2,
           isPressed: isPressed,
-          baseColor: isToday ? const Color(0xFF202020) : const Color(0xFF1A1A1A),
+          baseColor: isToday ? theme.colorScheme.primary.withOpacity(0.05) : theme.scaffoldBackgroundColor,
           child: Container(
             width: 52,
             child: Column(
@@ -301,15 +301,15 @@ class _AttendanceBubble extends ConsumerWidget {
               children: [
                 Text(
                   DateFormat('E').format(date).substring(0, 1),
-                  style: TextStyle(color: isToday ? Colors.white : Colors.white24, fontSize: 9, fontWeight: FontWeight.bold)
+                  style: TextStyle(color: isToday ? theme.colorScheme.onSurface : theme.colorScheme.onSurface.withOpacity(0.24), fontSize: 9, fontWeight: FontWeight.bold)
                 ),
                 const SizedBox(height: 2),
                 Text(
                   date.day.toString(),
-                  style: TextStyle(color: isToday ? Colors.cyanAccent : Colors.white, fontWeight: FontWeight.w900, fontSize: 16)
+                  style: TextStyle(color: isToday ? theme.colorScheme.primary : theme.colorScheme.onSurface, fontWeight: FontWeight.w900, fontSize: 16)
                 ),
                 if (isPressed && status != 'missed')
-                  Icon(Icons.check_rounded, size: 10, color: Theme.of(context).colorScheme.primary),
+                  Icon(Icons.check_rounded, size: 10, color: color.withOpacity(0.8)),
               ],
             ),
           ),
@@ -337,9 +337,9 @@ class _EmptyStateCard extends StatelessWidget {
       child: Center(
         child: Column(
           children: [
-            Icon(Icons.anchor_rounded, color: Colors.white.withOpacity(0.1), size: 40),
+            Icon(Icons.anchor_rounded, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1), size: 40),
             const SizedBox(height: 12),
-            const Text("NO ACTIVE MANEUVERS", style: TextStyle(color: Colors.white24, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 2)),
+            Text("NO ACTIVE MANEUVERS", style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.24), fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 2)),
           ],
         ),
       ),
@@ -353,6 +353,7 @@ class _WateryTaskTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: NeumorphicContainer(
@@ -364,15 +365,15 @@ class _WateryTaskTile extends StatelessWidget {
             NeumorphicContainer(
               shape: BoxShape.circle,
               depth: 2,
-              baseColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+              baseColor: theme.colorScheme.primary.withOpacity(0.1),
               padding: const EdgeInsets.all(4),
-              child: Container(width: 8, height: 8, decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary, shape: BoxShape.circle)),
+              child: Container(width: 8, height: 8, decoration: BoxDecoration(color: theme.colorScheme.primary, shape: BoxShape.circle)),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: Text(
                 title.toUpperCase(),
-                style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7), fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.5)
+                style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7), fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.5)
               )
             ),
           ],
