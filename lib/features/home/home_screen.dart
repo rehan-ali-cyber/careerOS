@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide BoxDecoration, BoxShadow;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:ui';
@@ -8,8 +8,8 @@ import '../../core/widgets/progress_card.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/persistence/preferences_service.dart';
 import '../../core/persistence/app_database.dart';
-import '../../core/theme/glass_theme.dart';
 import '../../core/widgets/beautiful_background.dart';
+import '../../core/widgets/neomorphic/neumorphic_container.dart';
 import '../../core/providers/attendance_provider.dart';
 import '../../core/providers/drawer_provider.dart';
 import '../../core/providers/stats_provider.dart';
@@ -32,52 +32,54 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: const Color(0xFF1A1A1A),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: _buildSidebarTrigger(),
       ),
-      body: Stack(
-        children: [
-          const Positioned.fill(child: BeautifulBackground()),
-          SafeArea(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 30),
-                  const _DailyBriefingHub(),
-                  const SizedBox(height: 28),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 10),
+              const _DailyBriefingHub(),
+              const SizedBox(height: 28),
 
-                  _buildSectionLabel("MISSION CONSISTENCY"),
-                  const _AttendanceTracker(),
-                  const SizedBox(height: 28),
+              _buildSectionLabel("MISSION CONSISTENCY"),
+              const _AttendanceTracker(),
+              const SizedBox(height: 28),
 
-                  _buildSectionLabel("COMMAND METRICS"),
-                  const _LiveReadinessCard(),
-                  const SizedBox(height: 24),
+              _buildSectionLabel("COMMAND METRICS"),
+              const _LiveReadinessCard(),
+              const SizedBox(height: 24),
 
-                  _buildSectionLabel("IMMEDIATE MANEUVERS"),
-                  const _CurrentManeuversList(),
+              _buildSectionLabel("IMMEDIATE MANEUVERS"),
+              const _CurrentManeuversList(),
 
-                  const SizedBox(height: 120),
-                ],
-              ),
-            ),
+              const SizedBox(height: 120),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildSidebarTrigger() {
-    return IconButton(
-      icon: const Icon(Icons.menu_rounded, color: Colors.white, size: 28),
-      onPressed: () => ref.read(scaffoldKeyProvider).currentState?.openDrawer(),
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: NeumorphicContainer(
+        shape: BoxShape.circle,
+        depth: 4,
+        child: IconButton(
+          icon: const Icon(Icons.menu_rounded, color: Colors.white, size: 24),
+          onPressed: () => ref.read(scaffoldKeyProvider).currentState?.openDrawer(),
+        ),
+      ),
     );
   }
 
@@ -104,8 +106,10 @@ class _LiveReadinessCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final readiness = ref.watch(statsProvider.select((s) => s.careerReadiness));
 
-    return _GlassBento(
+    return NeumorphicContainer(
       padding: const EdgeInsets.all(24),
+      borderRadius: 30,
+      depth: 10,
       child: ProgressCard(
         title: "Overall Career Readiness",
         progress: readiness,
@@ -131,8 +135,10 @@ class _CurrentManeuversList extends ConsumerWidget {
         final pending = snapshot.data!.where((s) => !s.isCompleted).take(3).toList();
         if (pending.isEmpty) return const _EmptyStateCard();
 
-        return _GlassBento(
+        return NeumorphicContainer(
           padding: const EdgeInsets.all(20),
+          borderRadius: 30,
+          depth: 10,
           child: Column(
             children: pending.map((step) => _WateryTaskTile(title: step.title)).toList(),
           ),
@@ -203,8 +209,8 @@ class _AttendanceTrackerState extends ConsumerState<_AttendanceTracker> {
   Widget build(BuildContext context) {
     final attendanceAsync = ref.watch(attendanceStreamProvider);
 
-    return Container(
-      height: 75,
+    return SizedBox(
+      height: 90,
       child: attendanceAsync.when(
         data: (data) {
           final now = DateTime.now();
@@ -216,6 +222,7 @@ class _AttendanceTrackerState extends ConsumerState<_AttendanceTracker> {
             controller: _scrollController,
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(vertical: 8),
             itemCount: days.length,
             itemBuilder: (context, index) {
               final date = days[index];
@@ -251,35 +258,37 @@ class _AttendanceBubble extends ConsumerWidget {
     if (status == 'completed_late') color = Colors.amberAccent;
     if (status == 'missed') color = Colors.redAccent.withOpacity(0.5);
 
+    final isPressed = status != 'pending';
+
     return GestureDetector(
       onTap: () => ref.read(attendanceServiceProvider).toggleAttendance(date),
       onLongPress: () => _showDayTaskDialog(context, date),
-      child: Container(
-        width: 52,
-        margin: const EdgeInsets.only(right: 12),
-        decoration: BoxDecoration(
-          color: color.withOpacity(isToday ? 0.15 : 0.05),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: color.withOpacity(isToday ? 0.6 : 0.2),
-            width: isToday ? 1.5 : 0.8,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 12),
+        child: NeumorphicContainer(
+          borderRadius: 18,
+          depth: isToday ? 4 : 2,
+          isPressed: isPressed,
+          baseColor: isToday ? const Color(0xFF202020) : const Color(0xFF1A1A1A),
+          child: Container(
+            width: 52,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  DateFormat('E').format(date).substring(0, 1),
+                  style: TextStyle(color: isToday ? Colors.white : Colors.white24, fontSize: 9, fontWeight: FontWeight.bold)
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  date.day.toString(),
+                  style: TextStyle(color: isToday ? Colors.cyanAccent : Colors.white, fontWeight: FontWeight.w900, fontSize: 16)
+                ),
+                if (isPressed && status != 'missed')
+                  Icon(Icons.check_rounded, size: 10, color: color.withOpacity(0.8)),
+              ],
+            ),
           ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              DateFormat('E').format(date).substring(0, 1),
-              style: TextStyle(color: isToday ? Colors.white : Colors.white24, fontSize: 9, fontWeight: FontWeight.bold)
-            ),
-            const SizedBox(height: 2),
-            Text(
-              date.day.toString(),
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)
-            ),
-            if (status != 'pending' && status != 'missed')
-              Icon(Icons.check_rounded, size: 10, color: color.withOpacity(0.8)),
-          ],
         ),
       ),
     );
@@ -297,8 +306,10 @@ class _EmptyStateCard extends StatelessWidget {
   const _EmptyStateCard();
   @override
   Widget build(BuildContext context) {
-    return _GlassBento(
+    return NeumorphicContainer(
       padding: const EdgeInsets.all(40),
+      borderRadius: 30,
+      depth: 6,
       child: Center(
         child: Column(
           children: [
@@ -318,50 +329,29 @@ class _WateryTaskTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
-      ),
-      child: Row(
-        children: [
-          Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.cyanAccent, shape: BoxShape.circle)),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              title.toUpperCase(),
-              style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.5)
-            )
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _GlassBento extends StatelessWidget {
-  final Widget child;
-  final EdgeInsets padding;
-  const _GlassBento({required this.child, required this.padding});
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(30),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-        child: Container(
-          width: double.infinity,
-          padding: padding,
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.04),
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: Colors.white.withOpacity(0.08), width: 1),
-          ),
-          child: child,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: NeumorphicContainer(
+        borderRadius: 18,
+        depth: 4,
+        padding: const EdgeInsets.all(18),
+        child: Row(
+          children: [
+            NeumorphicContainer(
+              shape: BoxShape.circle,
+              depth: 2,
+              baseColor: Colors.cyanAccent.withOpacity(0.1),
+              padding: const EdgeInsets.all(4),
+              child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.cyanAccent, shape: BoxShape.circle)),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                title.toUpperCase(),
+                style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.5)
+              )
+            ),
+          ],
         ),
       ),
     );

@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide BoxDecoration, BoxShadow;
+import 'package:flutter_inset_box_shadow/flutter_inset_box_shadow.dart' as inset;
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:ui';
-import '../theme/glass_theme.dart';
+import 'neomorphic/neumorphic_container.dart';
 import '../../features/chat/providers/career_pilot_provider.dart';
 import '../providers/database_provider.dart';
 import '../providers/drawer_provider.dart';
@@ -81,110 +82,104 @@ class _CareerOSDrawer extends ConsumerWidget {
     final pilot = ref.watch(careerPilotProvider.notifier);
 
     return Drawer(
-      backgroundColor: Colors.transparent,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.45),
-            border: const Border(right: BorderSide(color: Colors.white10, width: 0.8)),
-          ),
-          child: SafeArea(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeader(),
-                  const Divider(color: Colors.white10, height: 1),
-
-                  _buildSectionTitle("DEEP FOCUS"),
-                  _DrawerItem(
-                    icon: Icons.spa_outlined,
-                    label: 'Enter Zen Sanctuary',
-                    onTap: () {
-                      final zenNotifier = ref.read(zenProvider.notifier);
-                      Navigator.of(context).pop();
-                      _showZenEntryDialog(context, zenNotifier);
-                    },
-                  ),
-                  _DrawerItem(
-                    icon: Icons.auto_stories_outlined,
-                    label: 'Scholar Stream',
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      GoRouter.of(context).push('/scholar_stream');
-                    },
-                  ),
-
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    child: Divider(color: Colors.white10),
-                  ),
-
-                  _buildSectionTitle("AI CO-PILOT SESSIONS"),
-                  _DrawerItem(
-                    icon: Icons.chat_bubble_outline_rounded,
-                    label: 'New Normal Chat',
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      pilot.startNormalChat();
-                    },
-                  ),
-                  _DrawerItem(
-                    icon: Icons.psychology_outlined,
-                    label: 'Deep Career Counseling',
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      _confirmResetCounseling(context, pilot);
-                    },
-                  ),
-                  _DrawerItem(
-                    icon: Icons.delete_sweep_outlined,
-                    label: 'Clear Chat History',
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      _confirmClearChat(context, pilot);
-                    },
-                  ),
-
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    child: Divider(color: Colors.white10),
-                  ),
-
-                  _buildSectionTitle("VOYAGE METRICS"),
-                  _DrawerItem(
-                    icon: Icons.history_outlined,
-                    label: 'Career Milestones',
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      GoRouter.of(context).push('/history');
-                    },
-                  ),
-                  _DrawerItem(
-                    icon: Icons.calendar_today_rounded,
-                    label: 'Lifetime Voyage Log',
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      GoRouter.of(context).push('/lifetime_calendar');
-                    },
-                  ),
-                  _DrawerItem(
-                    icon: Icons.forum_outlined,
-                    label: 'Full Chat History',
-                    onTap: () {
-                      final router = GoRouter.of(context);
-                      Navigator.of(context).pop();
-                      router.push('/chat_history');
-                    },
-                  ),
-
-                  const SizedBox(height: 60),
-                  _buildFooter(),
-                ],
+      backgroundColor: const Color(0xFF1A1A1A),
+      child: SafeArea(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24),
+                child: Divider(color: Colors.white10, height: 1),
               ),
-            ),
+
+              _buildSectionTitle("DEEP FOCUS"),
+              _DrawerItem(
+                icon: Icons.spa_outlined,
+                label: 'Enter Zen Sanctuary',
+                onTap: () {
+                  final zenNotifier = ref.read(zenProvider.notifier);
+                  Navigator.of(context).pop();
+                  _showZenEntryDialog(context, zenNotifier);
+                },
+              ),
+              _DrawerItem(
+                icon: Icons.auto_stories_outlined,
+                label: 'Scholar Stream',
+                onTap: () {
+                  Navigator.of(context).pop();
+                  GoRouter.of(context).push('/scholar_stream');
+                },
+              ),
+
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                child: Divider(color: Colors.white10),
+              ),
+
+              _buildSectionTitle("AI CO-PILOT SESSIONS"),
+              _DrawerItem(
+                icon: Icons.chat_bubble_outline_rounded,
+                label: 'New Normal Chat',
+                onTap: () {
+                  Navigator.of(context).pop();
+                  pilot.startNormalChat();
+                },
+              ),
+              _DrawerItem(
+                icon: Icons.psychology_outlined,
+                label: 'Deep Career Counseling',
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _confirmResetCounseling(context, pilot);
+                },
+              ),
+              _DrawerItem(
+                icon: Icons.delete_sweep_outlined,
+                label: 'Clear Chat History',
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _confirmClearChat(context, pilot);
+                },
+              ),
+
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                child: Divider(color: Colors.white10),
+              ),
+
+              _buildSectionTitle("VOYAGE METRICS"),
+              _DrawerItem(
+                icon: Icons.history_outlined,
+                label: 'Career Milestones',
+                onTap: () {
+                  Navigator.of(context).pop();
+                  GoRouter.of(context).push('/history');
+                },
+              ),
+              _DrawerItem(
+                icon: Icons.calendar_today_rounded,
+                label: 'Lifetime Voyage Log',
+                onTap: () {
+                  Navigator.of(context).pop();
+                  GoRouter.of(context).push('/lifetime_calendar');
+                },
+              ),
+              _DrawerItem(
+                icon: Icons.forum_outlined,
+                label: 'Full Chat History',
+                onTap: () {
+                  final router = GoRouter.of(context);
+                  Navigator.of(context).pop();
+                  router.push('/chat_history');
+                },
+              ),
+
+              const SizedBox(height: 60),
+              _buildFooter(),
+            ],
           ),
         ),
       ),
@@ -238,24 +233,21 @@ class _CareerOSDrawer extends ConsumerWidget {
   void _confirmClearChat(BuildContext context, CareerPilotNotifier pilot) {
     showDialog(
       context: context,
-      builder: (dialogContext) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-        child: AlertDialog(
-          backgroundColor: Colors.black.withOpacity(0.8),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32), side: const BorderSide(color: Colors.white10)),
-          title: const Text('Purge History?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
-          content: const Text('This will permanently delete the current conversation logs.', style: TextStyle(color: Colors.white54, fontSize: 13)),
-          actions: [
-            TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('CANCEL', style: TextStyle(color: Colors.white24))),
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                pilot.startNormalChat().then((_) => navigationShell.goBranch(0));
-              },
-              child: const Text('CONFIRM PURGE', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        ),
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32), side: const BorderSide(color: Colors.white10)),
+        title: const Text('Purge History?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+        content: const Text('This will permanently delete the current conversation logs.', style: TextStyle(color: Colors.white54, fontSize: 13)),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('CANCEL', style: TextStyle(color: Colors.white24))),
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              pilot.startNormalChat().then((_) => navigationShell.goBranch(0));
+            },
+            child: const Text('CONFIRM PURGE', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }
@@ -263,24 +255,21 @@ class _CareerOSDrawer extends ConsumerWidget {
   void _confirmResetCounseling(BuildContext context, CareerPilotNotifier pilot) {
     showDialog(
       context: context,
-      builder: (dialogContext) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-        child: AlertDialog(
-          backgroundColor: Colors.black.withOpacity(0.8),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32), side: const BorderSide(color: Colors.white10)),
-          title: const Text('Full Reset?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
-          content: const Text('This resets your entire career profile and discovery journey.', style: TextStyle(color: Colors.white54, fontSize: 13)),
-          actions: [
-            TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('CANCEL', style: TextStyle(color: Colors.white24))),
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                pilot.startDeepCounseling();
-              },
-              child: const Text('ENGAGE RESET', style: TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        ),
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32), side: const BorderSide(color: Colors.white10)),
+        title: const Text('Full Reset?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+        content: const Text('This resets your entire career profile and discovery journey.', style: TextStyle(color: Colors.white54, fontSize: 13)),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('CANCEL', style: TextStyle(color: Colors.white24))),
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              pilot.startDeepCounseling();
+            },
+            child: const Text('ENGAGE RESET', style: TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }
@@ -290,44 +279,41 @@ class _CareerOSDrawer extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: AlertDialog(
-            backgroundColor: Colors.black.withOpacity(0.8),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32), side: const BorderSide(color: Colors.white10)),
-            title: const Text("ZEN SANCTUARY", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w200, letterSpacing: 2)),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text("Select duration for deep sea focus.", style: TextStyle(color: Colors.white38, fontSize: 12)),
-                const SizedBox(height: 30),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  alignment: WrapAlignment.center,
-                  children: [30, 60, 120, 180].map((m) => ChoiceChip(
-                    label: Text("$m min"),
-                    selected: selectedMinutes == m,
-                    onSelected: (s) => setDialogState(() => selectedMinutes = m),
-                    backgroundColor: Colors.white.withOpacity(0.02),
-                    selectedColor: Colors.cyanAccent.withOpacity(0.1),
-                    labelStyle: TextStyle(color: selectedMinutes == m ? Colors.cyanAccent : Colors.white24, fontWeight: FontWeight.bold),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  )).toList(),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(context), child: const Text("ABORT", style: TextStyle(color: Colors.white12))),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.push(context, MaterialPageRoute(builder: (c) => ZenShieldChecklistScreen(minutes: selectedMinutes, task: "Deep Study Voyage")));
-                },
-                child: const Text("INITIALIZE", style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.w900)),
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFF1A1A1A),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32), side: const BorderSide(color: Colors.white10)),
+          title: const Text("ZEN SANCTUARY", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w200, letterSpacing: 2)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text("Select duration for deep sea focus.", style: TextStyle(color: Colors.white38, fontSize: 12)),
+              const SizedBox(height: 30),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                alignment: WrapAlignment.center,
+                children: [30, 60, 120, 180].map((m) => ChoiceChip(
+                  label: Text("$m min"),
+                  selected: selectedMinutes == m,
+                  onSelected: (s) => setDialogState(() => selectedMinutes = m),
+                  backgroundColor: Colors.white.withOpacity(0.02),
+                  selectedColor: Colors.cyanAccent.withOpacity(0.1),
+                  labelStyle: TextStyle(color: selectedMinutes == m ? Colors.cyanAccent : Colors.white24, fontWeight: FontWeight.bold),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                )).toList(),
               ),
             ],
           ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("ABORT", style: TextStyle(color: Colors.white12))),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (c) => ZenShieldChecklistScreen(minutes: selectedMinutes, task: "Deep Study Voyage")));
+              },
+              child: const Text("INITIALIZE", style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.w900)),
+            ),
+          ],
         ),
       ),
     );
@@ -366,28 +352,28 @@ class _GlassBottomBar extends StatelessWidget {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(35),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-            child: Container(
-              height: 65,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(35),
-                border: Border.all(color: Colors.white.withOpacity(0.08), width: 1),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: List.generate(5, (index) {
-                  final icons = [Icons.home_filled, Icons.forum_rounded, Icons.explore_rounded, Icons.health_and_safety_rounded, Icons.person_3_rounded];
-                  return _NavBarIcon(
-                    icon: icons[index],
-                    isSelected: navigationShell.currentIndex == index,
-                    onTap: () => navigationShell.goBranch(index),
-                  );
-                }),
-              ),
+        child: NeumorphicContainer(
+          borderRadius: 35,
+          depth: 8,
+          child: Container(
+            height: 70,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: List.generate(5, (index) {
+                final icons = [
+                  Icons.home_filled,
+                  Icons.forum_rounded,
+                  Icons.explore_rounded,
+                  Icons.health_and_safety_rounded,
+                  Icons.person_3_rounded
+                ];
+                return _NavBarIcon(
+                  icon: icons[index],
+                  isSelected: navigationShell.currentIndex == index,
+                  onTap: () => navigationShell.goBranch(index),
+                );
+              }),
             ),
           ),
         ),
@@ -408,17 +394,19 @@ class _NavBarIcon extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(25),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.cyanAccent.withOpacity(0.1) : Colors.transparent,
+      child: Padding(
+        padding: const EdgeInsets.all(4.0),
+        child: NeumorphicContainer(
           shape: BoxShape.circle,
-        ),
-        child: Icon(
-          icon,
-          color: isSelected ? Colors.cyanAccent : Colors.white24,
-          size: 24,
+          depth: isSelected ? 2 : 4,
+          isPressed: isSelected,
+          baseColor: isSelected ? Colors.cyanAccent.withOpacity(0.05) : const Color(0xFF1A1A1A),
+          padding: const EdgeInsets.all(12),
+          child: Icon(
+            icon,
+            color: isSelected ? Colors.cyanAccent : Colors.white24,
+            size: 24,
+          ),
         ),
       ),
     );
