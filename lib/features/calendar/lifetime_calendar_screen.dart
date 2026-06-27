@@ -4,7 +4,7 @@ import 'dart:ui';
 import 'package:intl/intl.dart';
 import '../../core/persistence/app_database.dart';
 import '../../core/providers/database_provider.dart';
-import '../../core/theme/glass_theme.dart';
+import '../../core/widgets/neomorphic/neumorphic_container.dart';
 import '../../core/providers/attendance_provider.dart';
 import 'widgets/day_task_dialog.dart';
 
@@ -14,6 +14,7 @@ class LifetimeCalendarScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final attendanceAsync = ref.watch(attendanceStreamProvider);
+    final theme = Theme.of(context);
     final now = DateTime.now();
     final currentYear = now.year;
     const startYear = 2026;
@@ -23,39 +24,44 @@ class LifetimeCalendarScreen extends ConsumerWidget {
 
     return Scaffold(
       extendBodyBehindAppBar: true,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 24),
-          onPressed: () => Navigator.of(context).pop(),
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: NeumorphicContainer(
+            shape: BoxShape.circle,
+            depth: 4,
+            child: IconButton(
+              icon: Icon(Icons.arrow_back_ios_new_rounded, color: theme.colorScheme.onSurface, size: 20),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ),
         ),
-        title: const Text('Lifetime Voyage Log', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        title: Text('Lifetime Voyage Log', style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface)),
       ),
-      body: Container(
-        decoration: BoxDecoration(gradient: GlassTheme.waterGradient),
-        child: attendanceAsync.when(
-          data: (data) {
-            if (yearCount == 0) {
-              return const Center(child: Text("Voyage begins in 2026.", style: TextStyle(color: Colors.white70)));
-            }
+      body: attendanceAsync.when(
+        data: (data) {
+          if (yearCount == 0) {
+            return Center(child: Text("Voyage begins in 2026.", style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.5))));
+          }
 
-            return ListView.builder(
-              padding: const EdgeInsets.only(top: 120, left: 16, right: 16, bottom: 40),
-              physics: const BouncingScrollPhysics(),
-              itemCount: yearCount,
-              itemBuilder: (context, index) {
-                // Show years in descending order (2027, 2026...)
-                final year = currentYear - index;
-                if (year < startYear) return const SizedBox.shrink();
+          return ListView.builder(
+            padding: const EdgeInsets.only(top: 120, left: 16, right: 16, bottom: 40),
+            physics: const BouncingScrollPhysics(),
+            itemCount: yearCount,
+            itemBuilder: (context, index) {
+              // Show years in descending order (2027, 2026...)
+              final year = currentYear - index;
+              if (year < startYear) return const SizedBox.shrink();
 
-                return _YearlyVoyage(year: year, attendanceData: data);
-              },
-            );
-          },
-          loading: () => const Center(child: CircularProgressIndicator(color: Colors.white)),
-          error: (err, _) => Center(child: Text("Error loading log: $err", style: const TextStyle(color: Colors.red))),
-        ),
+              return _YearlyVoyage(year: year, attendanceData: data);
+            },
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, _) => Center(child: Text("Error loading log: $err", style: const TextStyle(color: Colors.red))),
       ),
     );
   }
@@ -69,6 +75,7 @@ class _YearlyVoyage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -78,10 +85,10 @@ class _YearlyVoyage extends StatelessWidget {
             children: [
               Text(
                 year.toString(),
-                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 2),
+                style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: theme.colorScheme.onSurface, letterSpacing: 2),
               ),
               const SizedBox(width: 12),
-              Container(height: 2, width: 40, color: Colors.cyanAccent.withOpacity(0.3)),
+              Container(height: 2, width: 40, color: theme.colorScheme.primary.withOpacity(0.3)),
             ],
           ),
         ),
@@ -114,6 +121,7 @@ class _MonthlySegment extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final monthName = DateFormat('MMMM').format(DateTime(year, month));
     final daysInMonth = DateUtils.getDaysInMonth(year, month);
 
@@ -126,14 +134,16 @@ class _MonthlySegment extends StatelessWidget {
             padding: const EdgeInsets.only(left: 12, bottom: 12),
             child: Text(
               monthName.toUpperCase(),
-              style: TextStyle(color: Colors.cyanAccent.withOpacity(0.7), fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.5),
+              style: TextStyle(color: theme.colorScheme.primary.withOpacity(0.7), fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.5),
             ),
           ),
-          _GlassBento(
-            padding: const EdgeInsets.all(16),
+          NeumorphicContainer(
+            padding: const EdgeInsets.all(20),
+            borderRadius: 24,
+            depth: 6,
             child: Wrap(
-              spacing: 10,
-              runSpacing: 10,
+              spacing: 12,
+              runSpacing: 12,
               children: List.generate(daysInMonth, (dIndex) {
                 final day = dIndex + 1;
                 final date = DateTime(year, month, day);
@@ -161,36 +171,37 @@ class _VoyageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final isFuture = date.isAfter(DateTime.now());
+    final isPressed = status != 'pending';
 
-    Color color = Colors.white.withOpacity(0.08);
+    Color color = theme.colorScheme.onSurface.withOpacity(0.1);
     if (status == 'completed_on_time') color = Colors.greenAccent;
     if (status == 'completed_late') color = Colors.amberAccent;
     if (status == 'missed') color = Colors.redAccent.withOpacity(0.5);
 
     return GestureDetector(
       onLongPress: () => _showDayTaskDialog(context),
-      child: Container(
-        width: 38, // Bigger size as requested
-        height: 38,
-        decoration: BoxDecoration(
-          color: color.withOpacity(isFuture ? 0.02 : 0.15),
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: color.withOpacity(isFuture ? 0.05 : 0.4),
-            width: status != 'pending' ? 2 : 1,
+      child: NeumorphicContainer(
+        shape: BoxShape.circle,
+        depth: isPressed ? 1 : (isFuture ? 2 : 4),
+        isPressed: isPressed,
+        padding: const EdgeInsets.all(4),
+        child: Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isPressed ? color.withOpacity(0.15) : Colors.transparent,
           ),
-          boxShadow: status != 'pending' && !isFuture
-              ? [BoxShadow(color: color.withOpacity(0.3), blurRadius: 8)]
-              : null,
-        ),
-        child: Center(
-          child: Text(
-            date.day.toString(),
-            style: TextStyle(
-              color: isFuture ? Colors.white24 : Colors.white,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
+          child: Center(
+            child: Text(
+              date.day.toString(),
+              style: TextStyle(
+                color: isFuture ? theme.colorScheme.onSurface.withOpacity(0.24) : theme.colorScheme.onSurface,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ),
@@ -206,28 +217,3 @@ class _VoyageBubble extends StatelessWidget {
   }
 }
 
-class _GlassBento extends StatelessWidget {
-  final Widget child;
-  final EdgeInsets padding;
-  const _GlassBento({required this.child, required this.padding});
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: Container(
-          width: double.infinity,
-          padding: padding,
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.04),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withOpacity(0.08)),
-          ),
-          child: child,
-        ),
-      ),
-    );
-  }
-}
