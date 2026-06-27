@@ -33,7 +33,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
-        Log.d(TAG, "Surgical Warden: Structural Detection Active")
+        Log.d(TAG, "Surgical Warden: Enhanced Detection Active")
         
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         val db = AppBlockingDatabase.getInstance(applicationContext)
@@ -52,8 +52,10 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         if (packageName == this.packageName || packageName == "com.android.systemui") return
 
         val rootNode = rootInActiveWindow ?: return
+        val className = event.className?.toString() ?: ""
 
         serviceScope.launch {
+            // 1. Full App Block (Priority)
             if (repository.shouldBlock(packageName)) {
                 launch(Dispatchers.Main) { 
                     hideOverlay()
@@ -62,11 +64,43 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                 return@launch
             }
 
-            val isShorts = checkNodeForId(rootNode, "com.google.android.youtube:id/shorts_player_view")
-            val isReels = checkNodeForId(rootNode, "com.instagram.android:id/clips_viewer_container")
-            val isSpotlight = checkNodeForId(rootNode, "com.snapchat.android:id/spotlight_tab_container")
-            val isInstaDM = checkNodeForId(rootNode, "com.instagram.android:id/message_list_recycler_view")
-            val isSnapChat = checkNodeForId(rootNode, "com.snapchat.android:id/chat_v2_container")
+            // 2. Enhanced Surgical Detection
+            var isShorts = false
+            var isReels = false
+            var isSpotlight = false
+            var isInstaDM = false
+            var isSnapChat = false
+
+            // YouTube Detection
+            if (packageName == "com.google.android.youtube") {
+                isShorts = checkNodeForIds(rootNode, arrayOf(
+                    "com.google.android.youtube:id/shorts_player_view",
+                    "com.google.android.youtube:id/reel_player_view_container"
+                )) || className.contains("ShortsActivity", ignoreCase = true)
+            }
+
+            // Instagram Detection
+            if (packageName == "com.instagram.android") {
+                isReels = checkNodeForIds(rootNode, arrayOf(
+                    "com.instagram.android:id/clips_viewer_container",
+                    "com.instagram.android:id/reels_video_container",
+                    "com.instagram.android:id/reels_viewer_container"
+                )) || className.contains("ClipsViewerActivity", ignoreCase = true)
+
+                isInstaDM = checkNodeForIds(rootNode, arrayOf(
+                    "com.instagram.android:id/message_list_recycler_view",
+                    "com.instagram.android:id/direct_thread_list_recycler_view"
+                ))
+            }
+
+            // Snapchat Detection
+            if (packageName == "com.snapchat.android") {
+                isSpotlight = checkNodeForIds(rootNode, arrayOf(
+                    "com.snapchat.android:id/spotlight_tab_container",
+                    "com.snapchat.android:id/vertical_swipe_layout"
+                ))
+                isSnapChat = checkNodeForId(rootNode, "com.snapchat.android:id/chat_v2_container")
+            }
 
             launch(Dispatchers.Main) {
                 val shouldShow = when {
@@ -85,6 +119,19 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                 }
             }
         }
+    }
+
+    private fun checkNodeForIds(node: AccessibilityNodeInfo?, ids: Array<String>): Boolean {
+        if (node == null) return false
+        for (id in ids) {
+            if (node.viewIdResourceName == id) return true
+        }
+        for (i in 0 until node.childCount) {
+            try {
+                if (checkNodeForIds(node.getChild(i), ids)) return true
+            } catch (e: Exception) {}
+        }
+        return false
     }
 
     private fun checkNodeForId(node: AccessibilityNodeInfo?, targetId: String): Boolean {
@@ -126,6 +173,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         try {
             windowManager?.addView(overlayView, params)
             isOverlayShowing = true
+            Log.w(TAG, "Surgical Overlay Displayed successfully")
         } catch (e: Exception) {
             Log.e(TAG, "Overlay Error: ${e.message}")
         }
