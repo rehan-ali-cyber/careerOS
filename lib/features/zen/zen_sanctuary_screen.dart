@@ -115,56 +115,86 @@ class _ZenSanctuaryScreenState extends ConsumerState<ZenSanctuaryScreen> {
   }
 
   Widget _buildOxygenTimer(BuildContext context, ZenState zen, String timeStr, ThemeData theme) {
+    // Progression logic
+    final totalSeconds = (zen.remainingSeconds + (zen.isBreathingBreak ? 0 : 0)); // Note: total duration not in state, using approximation
+    // Let's assume a standard 25m or whatever was selected.
+    // Since we don't have total duration in ZenState, I'll use a local calculation if possible or just a smooth pulse.
+    // Better yet, I'll add a smooth indeterminate-like progression or static ring if total is unknown.
+
     return Stack(
       alignment: Alignment.center,
       children: [
-        // ATMOSPHERIC PULSE (Simplified for Neumorphism)
+        // 1. NEUMORPHIC OUTER RING (The Track)
         Container(
-          width: 260,
-          height: 260,
+          width: 270,
+          height: 270,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: theme.colorScheme.primary.withOpacity(0.03),
+            color: theme.scaffoldBackgroundColor,
+            boxShadow: [
+              BoxShadow(
+                color: theme.brightness == Brightness.dark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.1),
+                offset: const Offset(10, 10),
+                blurRadius: 20,
+              ),
+              BoxShadow(
+                color: theme.brightness == Brightness.dark ? Colors.white.withOpacity(0.05) : Colors.white,
+                offset: const Offset(-10, -10),
+                blurRadius: 20,
+              ),
+            ],
           ),
-        ).animate(onPlay: (c) => c.repeat())
-         .scale(duration: 4.seconds, begin: const Offset(1, 1), end: const Offset(1.4, 1.4))
-         .fadeOut(),
+        ),
 
-        // THE CORE BUBBLE
+        // 2. PROGRESSION RING (The Fill)
+        SizedBox(
+          width: 240,
+          height: 240,
+          child: CircularProgressIndicator(
+            value: null, // Indeterminate for now as totalSeconds is not in state, or I can use (zen.remainingSeconds / (some_initial_value))
+            strokeWidth: 8,
+            strokeCap: StrokeCap.round,
+            color: theme.colorScheme.primary.withOpacity(0.5),
+            backgroundColor: Colors.transparent,
+          ),
+        ).animate(onPlay: (c) => c.repeat()).rotate(duration: 10.seconds),
+
+        // 3. INNER CORE BUBBLE
         NeumorphicContainer(
           shape: BoxShape.circle,
-          depth: 15,
+          depth: 6,
+          isPressed: true, // Debossed look for the inner core
           child: Container(
-            width: 220,
-            height: 220,
+            width: 200,
+            height: 200,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: theme.scaffoldBackgroundColor,
-              border: Border.all(color: theme.colorScheme.onSurface.withOpacity(0.02)),
             ),
           ),
         ),
 
-        // TIME METRICS
+        // 4. TIME METRICS
         Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               timeStr,
               style: TextStyle(
-                fontSize: 56,
-                fontWeight: FontWeight.w100,
+                fontSize: 52,
+                fontWeight: FontWeight.w200,
                 color: theme.colorScheme.onSurface,
-                letterSpacing: 3
+                letterSpacing: 2
               ),
             ),
+            const SizedBox(height: 4),
             Text(
-              zen.isBreathingBreak ? "RECOVERY PHASE" : "VOYAGE FOCUS",
+              zen.isBreathingBreak ? "RECOVERY" : "DEEP SEA",
               style: TextStyle(
-                color: theme.colorScheme.onSurface.withOpacity(0.2),
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 5
+                color: theme.colorScheme.primary.withOpacity(0.5),
+                fontSize: 9,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 4
               ),
             ),
           ],
