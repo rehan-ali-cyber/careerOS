@@ -5,8 +5,8 @@ import 'dart:ui';
 import 'package:permission_handler/permission_handler.dart';
 import '../../core/persistence/preferences_service.dart';
 import '../../core/providers/settings_provider.dart';
-import '../../core/theme/glass_theme.dart';
 import '../../core/widgets/beautiful_background.dart';
+import '../../core/widgets/neomorphic/neumorphic_container.dart';
 
 import '../../core/services/lockdown_service.dart';
 import 'package:usage_stats/usage_stats.dart';
@@ -232,15 +232,20 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
             SizedBox(
               width: double.infinity,
               height: 60,
-              child: ElevatedButton(
-                onPressed: _completeOnboarding,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.cyanAccent,
-                  foregroundColor: Colors.black,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  elevation: 0,
+              child: NeumorphicContainer(
+                borderRadius: 20,
+                baseColor: Colors.cyanAccent,
+                depth: 8,
+                child: ElevatedButton(
+                  onPressed: _completeOnboarding,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    foregroundColor: Colors.black,
+                    shadowColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  ),
+                  child: const Text("NEXT PHASE", style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
                 ),
-                child: const Text("NEXT PHASE", style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
               ),
             ),
           ],
@@ -304,15 +309,19 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
             SizedBox(
               width: double.infinity,
               height: 60,
-              child: ElevatedButton(
-                onPressed: _finishSetup,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white.withOpacity(0.1),
-                  foregroundColor: Colors.white,
-                  side: const BorderSide(color: Colors.white10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              child: NeumorphicContainer(
+                borderRadius: 20,
+                depth: 8,
+                child: ElevatedButton(
+                  onPressed: _finishSetup,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    foregroundColor: Colors.white,
+                    shadowColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  ),
+                  child: const Text("INITIALIZE VESSEL", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
                 ),
-                child: const Text("INITIALIZE VESSEL", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
               ),
             ),
             const SizedBox(height: 20),
@@ -328,27 +337,19 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
   }
 
   Widget _buildGlassTextField(TextEditingController controller, String hint, IconData icon) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withOpacity(0.1)),
-          ),
-          child: TextField(
-            controller: controller,
-            style: const TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: TextStyle(color: Colors.white.withOpacity(0.2)),
-              prefixIcon: Icon(icon, color: Colors.white38),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-              border: InputBorder.none,
-            ),
-          ),
+    return NeumorphicContainer(
+      borderRadius: 20,
+      depth: 4,
+      isPressed: true, // Input fields look better debossed (pressed)
+      child: TextField(
+        controller: controller,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(color: Colors.white.withOpacity(0.2)),
+          prefixIcon: Icon(icon, color: Colors.white38),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          border: InputBorder.none,
         ),
       ),
     );
@@ -372,51 +373,51 @@ class _PermissionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: isGranted ? Colors.cyanAccent.withOpacity(0.05) : Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isGranted ? Colors.cyanAccent.withOpacity(0.3) : Colors.white10),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: isGranted ? Colors.cyanAccent.withOpacity(0.1) : Colors.white.withOpacity(0.05),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: NeumorphicContainer(
+        borderRadius: 16,
+        isPressed: isGranted,
+        depth: isGranted ? 2 : 8,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              child: Row(
+                children: [
+                  NeumorphicContainer(
                     shape: BoxShape.circle,
+                    depth: isGranted ? 2 : 4,
+                    isPressed: isGranted,
+                    baseColor: isGranted ? Colors.cyanAccent.withOpacity(0.1) : const Color(0xFF1A1A1A),
+                    padding: const EdgeInsets.all(10),
+                    child: Icon(icon, color: isGranted ? Colors.cyanAccent : Colors.white24, size: 20),
                   ),
-                  child: Icon(icon, color: isGranted ? Colors.cyanAccent : Colors.white24, size: 20),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        subtitle,
-                        style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 11),
-                      ),
-                    ],
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          subtitle,
+                          style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 11),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                if (isGranted)
-                  const Icon(Icons.check_circle_rounded, color: Colors.cyanAccent, size: 20)
-                else
-                  const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.white24),
-              ],
+                  if (isGranted)
+                    const Icon(Icons.check_circle_rounded, color: Colors.cyanAccent, size: 20)
+                  else
+                    const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.white24),
+                ],
+              ),
             ),
           ),
         ),

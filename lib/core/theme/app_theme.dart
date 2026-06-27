@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
+  static const Color neumorphicBase = Color(0xFF1A1A1A);
+  static const Color neumorphicLightShadow = Colors.white;
+  static const Color neumorphicDarkShadow = Colors.black;
+
   static ThemeData get darkTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      scaffoldBackgroundColor: Colors.black,
+      scaffoldBackgroundColor: neumorphicBase,
       colorScheme: const ColorScheme.dark(
-        primary: Colors.greenAccent,
-        surface: Color(0xFF1E1E1E),
+        primary: Colors.cyanAccent,
+        surface: neumorphicBase,
         onSurface: Colors.white,
       ),
       appBarTheme: const AppBarTheme(
