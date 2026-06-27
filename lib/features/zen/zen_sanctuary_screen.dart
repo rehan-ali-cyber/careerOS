@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'providers/zen_provider.dart';
 import '../../core/services/lockdown_service.dart';
+import '../../core/widgets/neomorphic/neumorphic_container.dart';
 
 /**
  * ZenSanctuaryScreen is the core focus environment.
@@ -96,13 +97,10 @@ class _ZenSanctuaryScreenState extends ConsumerState<ZenSanctuaryScreen> {
 
   Widget _buildCurrentTaskBadge(String? task) {
     if (task == null) return const SizedBox.shrink();
-    return Container(
+    return NeumorphicContainer(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.04),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
-      ),
+      borderRadius: 20,
+      depth: 4,
       child: Text(
         "CURRENT MANEUVER: ${task.toUpperCase()}",
         style: const TextStyle(
@@ -119,20 +117,20 @@ class _ZenSanctuaryScreenState extends ConsumerState<ZenSanctuaryScreen> {
     return Stack(
       alignment: Alignment.center,
       children: [
-        // ATMOSPHERIC PULSE
-        Container(
-          width: 260,
-          height: 260,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.cyanAccent.withOpacity(0.03),
-          ),
-        ).animate(onPlay: (c) => c.repeat())
-         .scale(duration: 4.seconds, begin: const Offset(1, 1), end: const Offset(1.4, 1.4))
-         .fadeOut(),
-
         // THE CORE BUBBLE
-        _ZenCoreBubble(isBreathing: zen.isBreathingBreak),
+        NeumorphicContainer(
+          shape: BoxShape.circle,
+          depth: 15,
+          child: Container(
+            width: 220,
+            height: 220,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF1A1A1A),
+              border: Border.all(color: Colors.white.withOpacity(0.02)),
+            ),
+          ),
+        ),
 
         // TIME METRICS
         Column(
@@ -269,19 +267,24 @@ class _SurfaceExitButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.cyanAccent,
-        foregroundColor: Colors.black,
-        padding: const EdgeInsets.symmetric(horizontal: 54, vertical: 20),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-        elevation: 10,
-        shadowColor: Colors.cyanAccent.withOpacity(0.5),
-      ),
-      onPressed: onPressed,
-      child: const Text(
-        "SURFACE VOYAGE",
-        style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2)
+    return NeumorphicContainer(
+      borderRadius: 32,
+      depth: 10,
+      baseColor: Colors.cyanAccent,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.black,
+          padding: const EdgeInsets.symmetric(horizontal: 54, vertical: 20),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+          shadowColor: Colors.transparent,
+          elevation: 0,
+        ),
+        onPressed: onPressed,
+        child: const Text(
+          "SURFACE VOYAGE",
+          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2)
+        ),
       ),
     );
   }

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart' hide BoxDecoration, BoxShadow;
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:ui';
@@ -342,7 +342,7 @@ class _WateryTaskTile extends StatelessWidget {
               depth: 2,
               baseColor: Colors.cyanAccent.withOpacity(0.1),
               padding: const EdgeInsets.all(4),
-              child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.cyanAccent, shape: BoxShape.circle)),
+              child: Container(width: 8, height: 8, decoration: BoxDecoration(color: Colors.cyanAccent, shape: BoxShape.circle)),
             ),
             const SizedBox(width: 16),
             Expanded(

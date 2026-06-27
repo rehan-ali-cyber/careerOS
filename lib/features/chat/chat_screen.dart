@@ -4,8 +4,7 @@ import 'dart:ui';
 import '../../core/persistence/app_database.dart';
 import '../../core/providers/database_provider.dart';
 import 'providers/career_pilot_provider.dart';
-import '../../core/theme/glass_theme.dart';
-
+import '../../core/widgets/neomorphic/neumorphic_container.dart';
 import '../../core/providers/drawer_provider.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
@@ -35,94 +34,90 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final isLoading = pilotState.currentAction != null;
 
     return Scaffold(
+      backgroundColor: const Color(0xFF1A1A1A),
       extendBodyBehindAppBar: true,
-      // Temporarily removing local drawer to fix build and testing GlobalKey stability
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.menu_rounded, color: Colors.white, size: 28),
-          onPressed: () => ref.read(scaffoldKeyProvider).currentState?.openDrawer(),
-        ),
-        flexibleSpace: ClipRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(color: Colors.white.withOpacity(0.05)),
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: NeumorphicContainer(
+            shape: BoxShape.circle,
+            depth: 4,
+            child: IconButton(
+              icon: const Icon(Icons.menu_rounded, color: Colors.white, size: 24),
+              onPressed: () => ref.read(scaffoldKeyProvider).currentState?.openDrawer(),
+            ),
           ),
         ),
         title: const Text('Career Pilot AI', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
       ),
-      body: Container(
-        decoration: BoxDecoration(gradient: GlassTheme.waterGradient),
-        child: Column(
-          children: [
-            Expanded(
-              child: StreamBuilder<List<ChatMessage>>(
-                stream: messagesStream,
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    return const Center(child: Text('Error loading history.', style: TextStyle(color: Colors.red)));
-                  }
-                  if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: Colors.white));
+      body: Column(
+        children: [
+          Expanded(
+            child: StreamBuilder<List<ChatMessage>>(
+              stream: messagesStream,
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return const Center(child: Text('Error loading history.', style: TextStyle(color: Colors.red)));
+                }
+                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: Colors.white));
 
-                  final messages = snapshot.data!;
-                  return ListView.builder(
-                    padding: const EdgeInsets.only(top: 120, left: 16, right: 16, bottom: 20),
-                    physics: const BouncingScrollPhysics(),
-                    itemCount: messages.length + (isLoading ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index == messages.length && isLoading) {
-                        return ChatBubble(
-                          message: pilotState.currentAction ?? 'Navigating...',
-                          isAi: true,
-                        );
-                      }
-                      final msg = messages[index];
+                final messages = snapshot.data!;
+                return ListView.builder(
+                  padding: const EdgeInsets.only(top: 120, left: 16, right: 16, bottom: 20),
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: messages.length + (isLoading ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (index == messages.length && isLoading) {
                       return ChatBubble(
-                        message: msg.content,
-                        isAi: msg.isAi,
+                        message: pilotState.currentAction ?? 'Navigating...',
+                        isAi: true,
                       );
-                    },
-                  );
-                },
-              ),
+                    }
+                    final msg = messages[index];
+                    return ChatBubble(
+                      message: msg.content,
+                      isAi: msg.isAi,
+                    );
+                  },
+                );
+              },
             ),
-            _GlassInputArea(
-              controller: _controller,
-              onSend: _sendMessage,
-            ),
-            const SizedBox(height: 100), // Account for floating nav bar
-          ],
-        ),
+          ),
+          _NeumorphicInputArea(
+            controller: _controller,
+            onSend: _sendMessage,
+          ),
+          const SizedBox(height: 100), // Account for floating nav bar
+        ],
       ),
     );
   }
 }
 
-class _GlassInputArea extends StatelessWidget {
+class _NeumorphicInputArea extends StatelessWidget {
   final TextEditingController controller;
   final VoidCallback onSend;
 
-  const _GlassInputArea({required this.controller, required this.onSend});
+  const _NeumorphicInputArea({required this.controller, required this.onSend});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(32),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(32),
-              border: Border.all(color: Colors.white.withOpacity(0.15), width: 1.5),
-            ),
-            child: Row(
-              children: [
-                Expanded(
+      child: NeumorphicContainer(
+        borderRadius: 32,
+        depth: 6,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: NeumorphicContainer(
+                  borderRadius: 24,
+                  isPressed: true,
+                  depth: 2,
                   child: TextField(
                     controller: controller,
                     onSubmitted: (_) => onSend(),
@@ -135,14 +130,21 @@ class _GlassInputArea extends StatelessWidget {
                     ),
                   ),
                 ),
-                FloatingActionButton(
+              ),
+              const SizedBox(width: 12),
+              NeumorphicContainer(
+                shape: BoxShape.circle,
+                depth: 4,
+                child: FloatingActionButton(
                   onPressed: onSend,
                   mini: true,
-                  backgroundColor: Colors.white.withOpacity(0.2),
-                  child: const Icon(Icons.send, color: Colors.white),
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  shadowColor: Colors.transparent,
+                  child: const Icon(Icons.send, color: Colors.cyanAccent),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -164,26 +166,23 @@ class ChatBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     return Align(
       alignment: isAi ? Alignment.centerLeft : Alignment.centerRight,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-        decoration: BoxDecoration(
-          color: isAi ? Colors.white.withOpacity(0.08) : Colors.white.withOpacity(0.15),
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(20),
-            topRight: const Radius.circular(20),
-            bottomLeft: Radius.circular(isAi ? 0 : 20),
-            bottomRight: Radius.circular(isAi ? 20 : 0),
-          ),
-          border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
-        ),
-        child: Text(
-          message,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 15,
-            height: 1.4,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: NeumorphicContainer(
+          borderRadius: 20,
+          depth: 4,
+          baseColor: isAi ? const Color(0xFF202020) : const Color(0xFF1A1A1A),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                height: 1.4,
+              ),
+            ),
           ),
         ),
       ),
