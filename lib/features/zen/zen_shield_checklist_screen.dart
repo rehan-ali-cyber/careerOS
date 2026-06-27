@@ -6,6 +6,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'widgets/permission_card.dart';
 import 'providers/zen_provider.dart';
 import '../../core/services/lockdown_service.dart';
+import '../../core/widgets/neomorphic/neumorphic_container.dart';
 
 /**
  * Redesigned ZenShieldChecklistScreen: Minimalist & Calming.
@@ -67,16 +68,24 @@ class _ZenShieldChecklistScreenState extends State<ZenShieldChecklistScreen> wit
   @override
   Widget build(BuildContext context) {
     final isReadyToDive = _dndGranted && _overlayGranted && (_deviceOwnerActive || _pinningConfirmed);
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: Colors.black, // Vantablack minimalism
+      backgroundColor: theme.scaffoldBackgroundColor,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white24, size: 30),
-          onPressed: () => Navigator.pop(context),
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: NeumorphicContainer(
+            shape: BoxShape.circle,
+            depth: 4,
+            child: IconButton(
+              icon: Icon(Icons.keyboard_arrow_down_rounded, color: theme.colorScheme.onSurface, size: 24),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
         ),
       ),
       body: Stack(
@@ -90,7 +99,7 @@ class _ZenShieldChecklistScreenState extends State<ZenShieldChecklistScreen> wit
               height: 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.cyanAccent.withOpacity(0.03),
+                color: theme.colorScheme.primary.withOpacity(0.03),
               ),
             ).animate(onPlay: (c) => c.repeat(reverse: true)).scale(begin: const Offset(1, 1), end: const Offset(1.5, 1.5), duration: 10.seconds),
           ),
@@ -102,22 +111,22 @@ class _ZenShieldChecklistScreenState extends State<ZenShieldChecklistScreen> wit
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   const SizedBox(height: 40),
-                  const Text(
+                  Text(
                     "PRE-FLIGHT CHECK",
                     style: TextStyle(
-                      color: Colors.white38,
+                      color: theme.colorScheme.onSurface.withOpacity(0.38),
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 4
                     ),
                   ).animate().fadeIn(),
                   const SizedBox(height: 12),
-                  const Text(
+                  Text(
                     "Authorize Shields",
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w200,
-                      color: Colors.white,
+                      color: theme.colorScheme.onSurface,
                       letterSpacing: 1
                     ),
                   ).animate().fadeIn(delay: 200.ms),
@@ -154,11 +163,11 @@ class _ZenShieldChecklistScreenState extends State<ZenShieldChecklistScreen> wit
                       padding: const EdgeInsets.only(bottom: 20),
                       child: Text(
                         "SYSTEMS STANDBY",
-                        style: TextStyle(color: Colors.white.withOpacity(0.1), fontSize: 9, letterSpacing: 2),
+                        style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.1), fontSize: 9, letterSpacing: 2),
                       ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 4.seconds),
                     ),
 
-                  _buildLaunchButton(context, isReadyToDive),
+                  _buildLaunchButton(context, isReadyToDive, theme),
                   const SizedBox(height: 40),
                 ],
               ),
@@ -169,31 +178,29 @@ class _ZenShieldChecklistScreenState extends State<ZenShieldChecklistScreen> wit
     );
   }
 
-  Widget _buildLaunchButton(BuildContext context, bool isReady) {
+  Widget _buildLaunchButton(BuildContext context, bool isReady, ThemeData theme) {
     return Consumer(
-      builder: (context, ref, _) => InkWell(
-        onTap: isReady ? () {
-          Navigator.pop(context);
-          ref.read(zenProvider.notifier).startSanctuary(widget.minutes, widget.task);
-        } : null,
-        borderRadius: BorderRadius.circular(100),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 800),
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: isReady ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.01),
-            border: Border.all(
-              color: isReady ? Colors.cyanAccent.withOpacity(0.4) : Colors.white.withOpacity(0.05),
-              width: 1
+      builder: (context, ref, _) => NeumorphicContainer(
+        shape: BoxShape.circle,
+        depth: isReady ? 10 : 4,
+        isPressed: !isReady,
+        baseColor: isReady ? theme.colorScheme.primary : theme.scaffoldBackgroundColor,
+        child: InkWell(
+          onTap: isReady ? () {
+            Navigator.pop(context);
+            ref.read(zenProvider.notifier).startSanctuary(widget.minutes, widget.task);
+          } : null,
+          borderRadius: BorderRadius.circular(100),
+          child: Container(
+            width: 80,
+            height: 80,
+            child: Icon(
+              Icons.power_settings_new_rounded,
+              color: isReady
+                  ? (theme.brightness == Brightness.dark ? Colors.black : Colors.white)
+                  : theme.colorScheme.onSurface.withOpacity(0.1),
+              size: 32
             ),
-            boxShadow: isReady ? [BoxShadow(color: Colors.cyanAccent.withOpacity(0.1), blurRadius: 20)] : [],
-          ),
-          child: Icon(
-            Icons.power_settings_new_rounded,
-            color: isReady ? Colors.cyanAccent : Colors.white10,
-            size: 32
           ),
         ),
       ),
@@ -201,43 +208,41 @@ class _ZenShieldChecklistScreenState extends State<ZenShieldChecklistScreen> wit
   }
 
   void _showHardwarePinningGuide() {
+    final theme = Theme.of(context);
     showDialog(
       context: context,
-      builder: (context) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: AlertDialog(
-          backgroundColor: Colors.white.withOpacity(0.03),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(32),
-            side: const BorderSide(color: Colors.white10)
-          ),
-          title: const Text(
-            "Hardware Lock",
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w200, fontSize: 18)
-          ),
-          content: const Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                "1. Open Recents\n2. Tap Icon\n3. Tap PIN",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white38, fontSize: 13, height: 2, letterSpacing: 1),
-              ),
-            ],
-          ),
-          actions: [
-            Center(
-              child: TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  setState(() => _pinningConfirmed = true);
-                },
-                child: const Text("CONFIRM", style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 11)),
-              ),
+      builder: (context) => AlertDialog(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(32),
+          side: BorderSide(color: theme.colorScheme.onSurface.withOpacity(0.1))
+        ),
+        title: Text(
+          "Hardware Lock",
+          textAlign: TextAlign.center,
+          style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.w200, fontSize: 18)
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              "1. Open Recents\n2. Tap Icon\n3. Tap PIN",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.38), fontSize: 13, height: 2, letterSpacing: 1),
             ),
           ],
         ),
+        actions: [
+          Center(
+            child: TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                setState(() => _pinningConfirmed = true);
+              },
+              child: Text("CONFIRM", style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold, fontSize: 11)),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/widgets/neomorphic/neumorphic_container.dart';
 
 /**
  * A minimalistic card representing a system defense protocol.
@@ -22,83 +23,91 @@ class PermissionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 500),
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-      decoration: BoxDecoration(
-        color: isGranted ? Colors.white.withOpacity(0.04) : Colors.white.withOpacity(0.02),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isGranted ? Colors.cyanAccent.withOpacity(0.15) : Colors.white.withOpacity(0.05),
-          width: 0.8,
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: NeumorphicContainer(
+        borderRadius: 20,
+        depth: isGranted ? 2 : 8,
+        isPressed: isGranted,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          child: Row(
+            children: [
+              NeumorphicContainer(
+                shape: BoxShape.circle,
+                depth: isGranted ? 1 : 4,
+                isPressed: isGranted,
+                baseColor: isGranted ? theme.colorScheme.primary.withOpacity(0.1) : theme.scaffoldBackgroundColor,
+                padding: const EdgeInsets.all(10),
+                child: Icon(
+                  icon,
+                  color: isGranted ? theme.colorScheme.primary : theme.colorScheme.onSurface.withOpacity(0.24),
+                  size: 20
+                ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: isGranted ? theme.colorScheme.onSurface : theme.colorScheme.onSurface.withOpacity(0.6),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                        letterSpacing: 0.5
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      description,
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurface.withOpacity(0.38),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w400,
+                        letterSpacing: 1
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _buildActionButton(theme),
+            ],
+          ),
         ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            color: isGranted ? Colors.cyanAccent.withOpacity(0.6) : Colors.white24,
-            size: 20
-          ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: isGranted ? Colors.white : Colors.white60,
-                    fontWeight: FontWeight.w300,
-                    fontSize: 15,
-                    letterSpacing: 0.5
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  description,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.2),
-                    fontSize: 10,
-                    fontWeight: FontWeight.w200
-                  ),
-                ),
-              ],
-            ),
-          ),
-          _buildActionButton(),
-        ],
       ),
     );
   }
 
-  Widget _buildActionButton() {
+  Widget _buildActionButton(ThemeData theme) {
     if (isGranted) {
       return Icon(
-        Icons.check_rounded,
-        color: Colors.cyanAccent.withOpacity(0.4),
-        size: 18
+        Icons.check_circle_rounded,
+        color: theme.colorScheme.primary,
+        size: 20
       );
     }
 
-    return InkWell(
-      onTap: onGrant,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.cyanAccent.withOpacity(0.3)),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: const Text(
-          "ACTIVATE",
-          style: TextStyle(
-            color: Colors.cyanAccent,
-            fontSize: 9,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1
-          )
+    return NeumorphicContainer(
+      borderRadius: 12,
+      depth: 2,
+      baseColor: theme.colorScheme.primary.withOpacity(0.1),
+      child: InkWell(
+        onTap: onGrant,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Text(
+            "ACTIVATE",
+            style: TextStyle(
+              color: theme.colorScheme.primary,
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1
+            )
+          ),
         ),
       ),
     );

@@ -39,6 +39,7 @@ class _ZenSanctuaryScreenState extends ConsumerState<ZenSanctuaryScreen> {
   @override
   Widget build(BuildContext context) {
     final zen = ref.watch(zenProvider);
+    final theme = Theme.of(context);
 
     // Timer formatting
     final minutes = (zen.remainingSeconds / 60).floor();
@@ -51,22 +52,22 @@ class _ZenSanctuaryScreenState extends ConsumerState<ZenSanctuaryScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: Container(
-          decoration: _sanctuaryBackground(),
+          decoration: _sanctuaryBackground(theme),
           child: Stack(
             children: [
               // AMBIENCE: Slow drifting deep-sea bubbles
-              ...List.generate(5, (i) => _AmbientDriftBubble(index: i)),
+              ...List.generate(5, (i) => _AmbientDriftBubble(index: i, theme: theme)),
 
               SafeArea(
                 child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _buildCurrentTaskBadge(zen.focusTask),
+                      _buildCurrentTaskBadge(zen.focusTask, theme),
                       const SizedBox(height: 60),
-                      _buildOxygenTimer(context, zen, timeStr),
+                      _buildOxygenTimer(context, zen, timeStr, theme),
                       const SizedBox(height: 80),
-                      _buildActionFooter(ref, zen),
+                      _buildActionFooter(ref, zen, theme),
                     ],
                   ),
                 ),
@@ -82,20 +83,20 @@ class _ZenSanctuaryScreenState extends ConsumerState<ZenSanctuaryScreen> {
   // UI COMPONENTS
   // ────────────────────────────────────────────────────────────
 
-  BoxDecoration _sanctuaryBackground() {
-    return const BoxDecoration(
+  BoxDecoration _sanctuaryBackground(ThemeData theme) {
+    final isDark = theme.brightness == Brightness.dark;
+    return BoxDecoration(
       gradient: LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [
-          Color(0xFF001025), // Absolute Deep Blue
-          Color(0xFF000000), // Vantablack Depth
-        ],
+        colors: isDark
+          ? [const Color(0xFF001025), Colors.black]
+          : [const Color(0xFFF0F0F0), const Color(0xFFE0E0E0)],
       ),
     );
   }
 
-  Widget _buildCurrentTaskBadge(String? task) {
+  Widget _buildCurrentTaskBadge(String? task, ThemeData theme) {
     if (task == null) return const SizedBox.shrink();
     return NeumorphicContainer(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -103,8 +104,8 @@ class _ZenSanctuaryScreenState extends ConsumerState<ZenSanctuaryScreen> {
       depth: 4,
       child: Text(
         "CURRENT MANEUVER: ${task.toUpperCase()}",
-        style: const TextStyle(
-          color: Colors.cyanAccent,
+        style: TextStyle(
+          color: theme.colorScheme.primary,
           fontWeight: FontWeight.w900,
           fontSize: 11,
           letterSpacing: 2
@@ -113,10 +114,22 @@ class _ZenSanctuaryScreenState extends ConsumerState<ZenSanctuaryScreen> {
     ).animate().fadeIn(duration: 800.ms).slideY(begin: -0.2);
   }
 
-  Widget _buildOxygenTimer(BuildContext context, ZenState zen, String timeStr) {
+  Widget _buildOxygenTimer(BuildContext context, ZenState zen, String timeStr, ThemeData theme) {
     return Stack(
       alignment: Alignment.center,
       children: [
+        // ATMOSPHERIC PULSE (Simplified for Neumorphism)
+        Container(
+          width: 260,
+          height: 260,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: theme.colorScheme.primary.withOpacity(0.03),
+          ),
+        ).animate(onPlay: (c) => c.repeat())
+         .scale(duration: 4.seconds, begin: const Offset(1, 1), end: const Offset(1.4, 1.4))
+         .fadeOut(),
+
         // THE CORE BUBBLE
         NeumorphicContainer(
           shape: BoxShape.circle,
@@ -126,8 +139,8 @@ class _ZenSanctuaryScreenState extends ConsumerState<ZenSanctuaryScreen> {
             height: 220,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFF1A1A1A),
-              border: Border.all(color: Colors.white.withOpacity(0.02)),
+              color: theme.scaffoldBackgroundColor,
+              border: Border.all(color: theme.colorScheme.onSurface.withOpacity(0.02)),
             ),
           ),
         ),
@@ -138,17 +151,17 @@ class _ZenSanctuaryScreenState extends ConsumerState<ZenSanctuaryScreen> {
           children: [
             Text(
               timeStr,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 56,
                 fontWeight: FontWeight.w100,
-                color: Colors.white,
+                color: theme.colorScheme.onSurface,
                 letterSpacing: 3
               ),
             ),
             Text(
               zen.isBreathingBreak ? "RECOVERY PHASE" : "VOYAGE FOCUS",
               style: TextStyle(
-                color: Colors.white.withOpacity(0.2),
+                color: theme.colorScheme.onSurface.withOpacity(0.2),
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 5
@@ -160,28 +173,29 @@ class _ZenSanctuaryScreenState extends ConsumerState<ZenSanctuaryScreen> {
     );
   }
 
-  Widget _buildActionFooter(WidgetRef ref, ZenState zen) {
+  Widget _buildActionFooter(WidgetRef ref, ZenState zen, ThemeData theme) {
     if (zen.remainingSeconds <= 0) {
       return _SurfaceExitButton(
-        onPressed: () => ref.read(zenProvider.notifier).stopSanctuary()
+        onPressed: () => ref.read(zenProvider.notifier).stopSanctuary(),
+        theme: theme,
       ).animate().scale().shimmer();
     }
 
     return Column(
       children: [
-        const Text(
+        Text(
           "IRON-CLAD LOCK ENGAGED",
           style: TextStyle(
-            color: Colors.white24,
+            color: theme.colorScheme.onSurface.withOpacity(0.24),
             fontWeight: FontWeight.w900,
             fontSize: 10,
             letterSpacing: 3
           ),
-        ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 3.seconds, color: Colors.cyanAccent.withOpacity(0.2)),
+        ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 3.seconds, color: theme.colorScheme.primary.withOpacity(0.2)),
         const SizedBox(height: 8),
         Text(
           "THE SEA IS CALM. STAY FOCUSED.",
-          style: TextStyle(color: Colors.white.withOpacity(0.1), fontSize: 9),
+          style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.1), fontSize: 9),
         ),
       ],
     );
@@ -236,7 +250,8 @@ class _ZenCoreBubble extends StatelessWidget {
 
 class _AmbientDriftBubble extends StatelessWidget {
   final int index;
-  const _AmbientDriftBubble({required this.index});
+  final ThemeData theme;
+  const _AmbientDriftBubble({required this.index, required this.theme});
 
   @override
   Widget build(BuildContext context) {
@@ -251,8 +266,8 @@ class _AmbientDriftBubble extends StatelessWidget {
         height: rand.nextDouble() * 50 + 20,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.white.withOpacity(0.02),
-          border: Border.all(color: Colors.white.withOpacity(0.03)),
+          color: theme.colorScheme.onSurface.withOpacity(0.02),
+          border: Border.all(color: theme.colorScheme.onSurface.withOpacity(0.03)),
         ),
       ).animate(onPlay: (c) => c.repeat())
        .moveY(begin: 0, end: -1200, duration: (rand.nextInt(15) + 15).seconds)
@@ -263,18 +278,19 @@ class _AmbientDriftBubble extends StatelessWidget {
 
 class _SurfaceExitButton extends StatelessWidget {
   final VoidCallback onPressed;
-  const _SurfaceExitButton({required this.onPressed});
+  final ThemeData theme;
+  const _SurfaceExitButton({required this.onPressed, required this.theme});
 
   @override
   Widget build(BuildContext context) {
     return NeumorphicContainer(
       borderRadius: 32,
       depth: 10,
-      baseColor: Colors.cyanAccent,
+      baseColor: theme.colorScheme.primary,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
-          foregroundColor: Colors.black,
+          foregroundColor: theme.brightness == Brightness.dark ? Colors.black : Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 54, vertical: 20),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
           shadowColor: Colors.transparent,
