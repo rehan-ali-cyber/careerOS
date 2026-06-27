@@ -68,6 +68,10 @@ class AppBlockingRepository(private val context: Context, private val db: AppBlo
         BlockingPreferences.saveGuardianBlocks(context, blocks.toSet())
     }
 
+    fun isGuardianEnabled(key: String): Boolean {
+        return BlockingPreferences.getGuardianBlocks(context).contains(key)
+    }
+
     suspend fun setSchedule(packageName: String, startH: Int, startM: Int, endH: Int, endM: Int, days: String) {
         db.scheduleDao().insert(BlockSchedule(
             packageName = packageName,

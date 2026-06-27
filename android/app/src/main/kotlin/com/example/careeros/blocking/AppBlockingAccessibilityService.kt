@@ -23,28 +23,26 @@ import kotlinx.coroutines.launch
 
 class AppBlockingAccessibilityService : AccessibilityService() {
 
-    private val TAG = "BlockingService"
+    private val TAG = "SurgicalWarden"
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private lateinit var repository: AppBlockingRepository
-    private var lastBlockedPackage: String? = null
 
-    // Overlay Management
     private var windowManager: WindowManager? = null
     private var overlayView: View? = null
     private var isOverlayShowing = false
 
     override fun onServiceConnected() {
         super.onServiceConnected()
-        Log.d(TAG, "Professional Surgical Blocking Service Connected")
+        Log.d(TAG, "Surgical Warden: Structural Detection Active")
         
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         val db = AppBlockingDatabase.getInstance(applicationContext)
-        repository = AppBlockingRepository(this, db)
+        repository = AppBlockingRepository(applicationContext, db)
 
         serviceInfo = serviceInfo.apply {
             eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
             feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
-            notificationTimeout = 100
+            notificationTimeout = 50
             flags = AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS or AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
         }
     }
@@ -56,28 +54,32 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         val rootNode = rootInActiveWindow ?: return
 
         serviceScope.launch {
-            // 1. Check Full App Blocking (Room DB)
             if (repository.shouldBlock(packageName)) {
-                Log.w(TAG, "Full App Block: $packageName")
-                launch(Dispatchers.Main) { launchBlockScreen(packageName) }
+                launch(Dispatchers.Main) { 
+                    hideOverlay()
+                    launchBlockScreen(packageName) 
+                }
                 return@launch
-            } else {
-                lastBlockedPackage = null
             }
 
-            // 2. Surgical In-App Blocking (ID-based)
             val isShorts = checkNodeForId(rootNode, "com.google.android.youtube:id/shorts_player_view")
             val isReels = checkNodeForId(rootNode, "com.instagram.android:id/clips_viewer_container")
             val isSpotlight = checkNodeForId(rootNode, "com.snapchat.android:id/spotlight_tab_container")
+            val isInstaDM = checkNodeForId(rootNode, "com.instagram.android:id/message_list_recycler_view")
+            val isSnapChat = checkNodeForId(rootNode, "com.snapchat.android:id/chat_v2_container")
 
             launch(Dispatchers.Main) {
-                if (isShorts || isReels || isSpotlight) {
-                    val msg = when {
-                        isShorts -> "YouTube Shorts Restricted"
-                        isReels -> "Instagram Reels Restricted"
-                        else -> "Snapchat Spotlight Restricted"
-                    }
-                    showOverlay(msg)
+                val shouldShow = when {
+                    isShorts && repository.isGuardianEnabled("YouTube Shorts") -> true
+                    isReels && repository.isGuardianEnabled("Instagram Reels") -> true
+                    isSpotlight && repository.isGuardianEnabled("Snapchat Spotlight") -> true
+                    isInstaDM && repository.isGuardianEnabled("Instagram DMs") -> true
+                    isSnapChat && repository.isGuardianEnabled("Snapchat Chat") -> true
+                    else -> false
+                }
+
+                if (shouldShow) {
+                    showOverlay("Addiction Blocked: Return to Mission")
                 } else {
                     hideOverlay()
                 }
@@ -113,7 +115,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
             val tv = TextView(this.context).apply {
                 text = message
                 setTextColor(Color.WHITE)
-                textSize = 22f
+                textSize = 20f
                 gravity = Gravity.CENTER
                 setPadding(60, 60, 60, 60)
             }
@@ -138,9 +140,6 @@ class AppBlockingAccessibilityService : AccessibilityService() {
     }
 
     private fun launchBlockScreen(packageName: String) {
-        if (lastBlockedPackage == packageName) return
-        lastBlockedPackage = packageName
-
         val intent = Intent(this, BlockScreenActivity::class.java).apply {
             putExtra(BlockScreenActivity.EXTRA_PACKAGE_NAME, packageName)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
