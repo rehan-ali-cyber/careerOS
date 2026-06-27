@@ -8,6 +8,7 @@ class PreferencesService {
   static const String _languageKey = 'language_code';
   static const String _apiKeyKey = 'api_key';
   static const String _commitmentBreaksKey = 'commitment_breaks';
+  static const String _isDarkModeKey = 'is_dark_mode';
 
   static Future<void> init() async {
     await Hive.initFlutter();
@@ -72,6 +73,16 @@ class PreferencesService {
   static Future<void> setCommitmentBreaks(int count) async {
     final box = Hive.box(_boxName);
     await box.put(_commitmentBreaksKey, count);
+  }
+
+  static bool isDarkMode() {
+    final box = Hive.box(_boxName);
+    return box.get(_isDarkModeKey, defaultValue: true);
+  }
+
+  static Future<void> setIsDarkMode(bool value) async {
+    final box = Hive.box(_boxName);
+    await box.put(_isDarkModeKey, value);
   }
 
   static Future<void> clearAll() async {

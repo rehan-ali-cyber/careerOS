@@ -76,7 +76,9 @@ class _CareerOSState extends ConsumerState<CareerOS> {
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'CareerOS',
-      theme: AppTheme.darkTheme,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: settings.isDarkMode ? ThemeMode.dark : ThemeMode.light,
       routerConfig: router,
       locale: Locale(settings.languageCode),
       localizationsDelegates: const [

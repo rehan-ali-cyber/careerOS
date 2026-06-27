@@ -7,6 +7,7 @@ class SettingsState {
   final String languageCode;
   final String apiKey;
   final int commitmentBreaks;
+  final bool isDarkMode;
 
   SettingsState({
     required this.userName,
@@ -14,6 +15,7 @@ class SettingsState {
     required this.languageCode,
     required this.apiKey,
     required this.commitmentBreaks,
+    required this.isDarkMode,
   });
 
   SettingsState copyWith({
@@ -22,6 +24,7 @@ class SettingsState {
     String? languageCode,
     String? apiKey,
     int? commitmentBreaks,
+    bool? isDarkMode,
   }) {
     return SettingsState(
       userName: userName ?? this.userName,
@@ -29,6 +32,7 @@ class SettingsState {
       languageCode: languageCode ?? this.languageCode,
       apiKey: apiKey ?? this.apiKey,
       commitmentBreaks: commitmentBreaks ?? this.commitmentBreaks,
+      isDarkMode: isDarkMode ?? this.isDarkMode,
     );
   }
 }
@@ -41,6 +45,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
           languageCode: PreferencesService.getLanguageCode(),
           apiKey: PreferencesService.getApiKey(),
           commitmentBreaks: PreferencesService.getCommitmentBreaks(),
+          isDarkMode: PreferencesService.isDarkMode(),
         ));
 
   Future<void> updateUserName(String name) async {
@@ -67,6 +72,12 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     final newCount = state.commitmentBreaks + 1;
     await PreferencesService.setCommitmentBreaks(newCount);
     state = state.copyWith(commitmentBreaks: newCount);
+  }
+
+  void toggleTheme() {
+    final newValue = !state.isDarkMode;
+    PreferencesService.setIsDarkMode(newValue);
+    state = state.copyWith(isDarkMode: newValue);
   }
 }
 

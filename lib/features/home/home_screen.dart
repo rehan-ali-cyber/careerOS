@@ -32,12 +32,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1A1A1A),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: _buildSidebarTrigger(),
+        actions: [_buildThemeToggle(), const SizedBox(width: 8)],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -47,7 +48,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 10),
-              const _DailyBriefingHub(),
+              _buildDailyBriefingHub(),
               const SizedBox(height: 28),
 
               _buildSectionLabel("MISSION CONSISTENCY"),
@@ -76,8 +77,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         shape: BoxShape.circle,
         depth: 4,
         child: IconButton(
-          icon: const Icon(Icons.menu_rounded, color: Colors.white, size: 24),
+          icon: Icon(Icons.menu_rounded, color: Theme.of(context).colorScheme.onSurface, size: 24),
           onPressed: () => ref.read(scaffoldKeyProvider).currentState?.openDrawer(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThemeToggle() {
+    final settings = ref.watch(settingsProvider);
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: NeumorphicContainer(
+        shape: BoxShape.circle,
+        depth: 4,
+        child: IconButton(
+          icon: Icon(
+            settings.isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+            color: Theme.of(context).colorScheme.primary,
+            size: 24,
+          ),
+          onPressed: () => ref.read(settingsProvider.notifier).toggleTheme(),
         ),
       ),
     );
@@ -89,7 +109,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: Text(
         label,
         style: TextStyle(
-          color: Colors.white.withOpacity(0.2),
+          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
           fontSize: 10,
           fontWeight: FontWeight.w900,
           letterSpacing: 2
@@ -148,11 +168,7 @@ class _CurrentManeuversList extends ConsumerWidget {
   }
 }
 
-class _DailyBriefingHub extends ConsumerWidget {
-  const _DailyBriefingHub();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget _buildDailyBriefingHub() {
     final userName = PreferencesService.getUserName();
     final calibration = ref.watch(databaseProvider).watchCalibration();
 
@@ -170,12 +186,20 @@ class _DailyBriefingHub extends ConsumerWidget {
           children: [
             Text(
               "Greetings, $userName",
-              style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -1.5),
+              style: TextStyle(
+                  fontSize: 34,
+                  fontWeight: FontWeight.w900,
+                  color: Theme.of(context).colorScheme.onSurface,
+                  letterSpacing: -1.5),
             ).animate().fadeIn().slideX(begin: -0.1),
             const SizedBox(height: 4),
             Text(
               briefing.toUpperCase(),
-              style: const TextStyle(fontSize: 10, color: Colors.cyanAccent, fontWeight: FontWeight.w800, letterSpacing: 1.5),
+              style: TextStyle(
+                  fontSize: 10,
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.5),
             ).animate().fadeIn(delay: 200.ms),
           ],
         );
@@ -285,7 +309,7 @@ class _AttendanceBubble extends ConsumerWidget {
                   style: TextStyle(color: isToday ? Colors.cyanAccent : Colors.white, fontWeight: FontWeight.w900, fontSize: 16)
                 ),
                 if (isPressed && status != 'missed')
-                  Icon(Icons.check_rounded, size: 10, color: color.withOpacity(0.8)),
+                  Icon(Icons.check_rounded, size: 10, color: Theme.of(context).colorScheme.primary),
               ],
             ),
           ),
@@ -340,15 +364,15 @@ class _WateryTaskTile extends StatelessWidget {
             NeumorphicContainer(
               shape: BoxShape.circle,
               depth: 2,
-              baseColor: Colors.cyanAccent.withOpacity(0.1),
+              baseColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
               padding: const EdgeInsets.all(4),
-              child: Container(width: 8, height: 8, decoration: BoxDecoration(color: Colors.cyanAccent, shape: BoxShape.circle)),
+              child: Container(width: 8, height: 8, decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary, shape: BoxShape.circle)),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: Text(
                 title.toUpperCase(),
-                style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.5)
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7), fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.5)
               )
             ),
           ],

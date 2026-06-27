@@ -4,7 +4,7 @@ class NeumorphicContainer extends StatelessWidget {
   final Widget child;
   final double borderRadius;
   final bool isPressed;
-  final Color baseColor;
+  final Color? baseColor;
   final double depth;
   final double spread;
   final EdgeInsetsGeometry padding;
@@ -15,7 +15,7 @@ class NeumorphicContainer extends StatelessWidget {
     required this.child,
     this.borderRadius = 20,
     this.isPressed = false,
-    this.baseColor = const Color(0xFF1A1A1A),
+    this.baseColor,
     this.depth = 8,
     this.spread = 1,
     this.padding = const EdgeInsets.all(0),
@@ -24,12 +24,21 @@ class NeumorphicContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    // Automatic base color based on theme if not provided
+    final effectiveBaseColor = baseColor ?? theme.scaffoldBackgroundColor;
+
+    // Shadow colors based on theme
+    final darkShadow = isDark ? Colors.black.withOpacity(0.4) : Colors.black.withOpacity(0.15);
+    final lightShadow = isDark ? Colors.white.withOpacity(0.05) : Colors.white;
+
     if (isPressed) {
-      // Manual Inset Shadow Approximation using Inner Shadow technique
       return Container(
         padding: padding,
         decoration: BoxDecoration(
-          color: baseColor,
+          color: effectiveBaseColor,
           shape: shape,
           borderRadius: shape == BoxShape.circle ? null : BorderRadius.circular(borderRadius),
         ),
@@ -37,7 +46,6 @@ class NeumorphicContainer extends StatelessWidget {
           borderRadius: shape == BoxShape.circle ? BorderRadius.circular(100) : BorderRadius.circular(borderRadius),
           child: Stack(
             children: [
-              // Top-Left Dark Shadow (Inner)
               Positioned(
                 top: -depth,
                 left: -depth,
@@ -49,7 +57,7 @@ class NeumorphicContainer extends StatelessWidget {
                     borderRadius: shape == BoxShape.circle ? null : BorderRadius.circular(borderRadius),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.4),
+                        color: darkShadow,
                         blurRadius: depth,
                         offset: Offset(depth / 2, depth / 2),
                       ),
@@ -57,7 +65,6 @@ class NeumorphicContainer extends StatelessWidget {
                   ),
                 ),
               ),
-              // Bottom-Right Light Shadow (Inner)
               Positioned(
                 top: 0,
                 left: 0,
@@ -69,7 +76,7 @@ class NeumorphicContainer extends StatelessWidget {
                     borderRadius: shape == BoxShape.circle ? null : BorderRadius.circular(borderRadius),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.white.withOpacity(0.05),
+                        color: lightShadow,
                         blurRadius: depth,
                         offset: Offset(-depth / 2, -depth / 2),
                       ),
@@ -87,24 +94,21 @@ class NeumorphicContainer extends StatelessWidget {
       );
     }
 
-    // Standard Outset Shadow (Embossed)
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: baseColor,
+        color: effectiveBaseColor,
         shape: shape,
         borderRadius: shape == BoxShape.circle ? null : BorderRadius.circular(borderRadius),
         boxShadow: [
-          // Bottom-Right Dark Shadow
           BoxShadow(
-            color: Colors.black.withOpacity(0.4),
+            color: darkShadow,
             offset: Offset(depth, depth),
             blurRadius: depth * 2,
             spreadRadius: spread,
           ),
-          // Top-Left Light Shadow
           BoxShadow(
-            color: Colors.white.withOpacity(0.05),
+            color: lightShadow,
             offset: Offset(-depth / 2, -depth / 2),
             blurRadius: depth * 2,
             spreadRadius: spread,
