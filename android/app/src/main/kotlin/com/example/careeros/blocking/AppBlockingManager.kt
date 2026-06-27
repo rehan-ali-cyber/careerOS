@@ -37,6 +37,10 @@ class AppBlockingManager private constructor(private val context: Context) {
     private var lastBlockedPackage: String? = null
     private var listener: BlockingEventListener? = null
 
+    // Grace Period Tracking
+    private var shortsStartTime: Long = 0
+    private val SHORTS_GRACE_PERIOD_MS = 30000L // 30 Seconds
+
     init {
         loadSavedRules()
     }
@@ -227,6 +231,31 @@ class AppBlockingManager private constructor(private val context: Context) {
         if (packageName == context.packageName) return
         
         val lower = screenText.lowercase()
+        val isYouTube = packageName == "com.google.android.youtube"
+        val containsShorts = lower.contains("shorts") || lower.contains("shorts tab")
+
+        // Specialized Logic for YouTube Shorts (30-second Grace Period)
+        if (isYouTube && containsShorts) {
+            val now = System.currentTimeMillis()
+            if (shortsStartTime == 0L) {
+                Log.d(TAG, "YouTube Shorts detected! Starting 30s grace period...")
+                shortsStartTime = now
+            } else if (now - shortsStartTime > SHORTS_GRACE_PERIOD_MS) {
+                Log.w(TAG, "!!! BLOCKING YOUTUBE: Grace period (30s) for Shorts expired.")
+                shortsStartTime = 0L // Reset for next time
+                listener?.onInAppContentBlocked(packageName, "YouTube Shorts (Limit Exceeded)")
+                showBlockScreen(packageName, getAppName(packageName), "You spent >30s on Shorts. Mission First!")
+            }
+            return // Skip standard keyword check if we are in YT Shorts logic
+        } else if (isYouTube && !containsShorts) {
+            // User exited shorts but still in YouTube
+            if (shortsStartTime != 0L) {
+                Log.d(TAG, "User exited YouTube Shorts. Grace period reset.")
+                shortsStartTime = 0L
+            }
+        }
+
+        // Standard Keyword Check for other apps and other YT content
         for (keyword in blockedKeywords) {
             if (lower.contains(keyword)) {
                 Log.w(TAG, "!!! BLOCKING CONTENT in $packageName: keyword '$keyword' found")
