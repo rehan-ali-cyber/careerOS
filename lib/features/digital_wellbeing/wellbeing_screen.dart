@@ -176,18 +176,27 @@ class _WellbeingScreenState extends ConsumerState<WellbeingScreen> with WidgetsB
       ..sort((a, b) => (int.tryParse(b.totalTimeInForeground ?? '0') ?? 0)
           .compareTo(int.tryParse(a.totalTimeInForeground ?? '0') ?? 0));
 
+    // PERFORMANCE: Use ListView.builder for lazy loading instead of mapping to a Column
     return NeumorphicContainer(
       borderRadius: 30,
       depth: 10,
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Column(
-        children: sortedStats.take(15).map((info) {
-          return _AppLimitTile(
-            info: info,
-            currentLimit: _appLimits[info.packageName],
-            onSetLimit: (mins) => _setAppLimit(info.packageName!, mins),
-          );
-        }).toList(),
+      child: SizedBox(
+        height: 500, // Fixed height to enable virtualization
+        child: ListView.builder(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          itemCount: sortedStats.take(20).length,
+          physics: const NeverScrollableScrollPhysics(), // Scroll handled by parent
+          shrinkWrap: true,
+          itemBuilder: (context, index) {
+            final info = sortedStats[index];
+            return _AppLimitTile(
+              key: ValueKey(info.packageName),
+              info: info,
+              currentLimit: _appLimits[info.packageName],
+              onSetLimit: (mins) => _setAppLimit(info.packageName!, mins),
+            );
+          },
+        ),
       ),
     );
   }
@@ -286,6 +295,7 @@ class _AppLimitTile extends ConsumerWidget {
   final Function(int) onSetLimit;
 
   const _AppLimitTile({
+    super.key,
     required this.info,
     this.currentLimit,
     required this.onSetLimit,

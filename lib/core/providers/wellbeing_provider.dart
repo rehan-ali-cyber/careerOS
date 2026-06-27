@@ -49,12 +49,18 @@ final hasUsagePermissionProvider = FutureProvider<bool>((ref) async {
 });
 
 /**
- * appMetadataProvider: Caches app names and icons to prevent expensive native calls during scrolling.
+ * appMetadataProvider: Caches app names and icons.
  */
 final appMetadataProvider = FutureProvider.family<AppInfo?, String>((ref, packageName) async {
+  // Use simple caching logic
+  return await ref.watch(_appMetadataCacheProvider(packageName).future);
+});
+
+final _appMetadataCacheProvider = FutureProvider.family<AppInfo?, String>((ref, packageName) async {
   try {
     return await InstalledApps.getAppInfo(packageName);
   } catch (_) {
     return null;
   }
 });
+

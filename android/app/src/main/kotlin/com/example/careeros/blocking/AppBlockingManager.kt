@@ -48,6 +48,7 @@ class AppBlockingManager private constructor(private val context: Context) {
     interface BlockingEventListener {
         fun onAppBlocked(packageName: String, appName: String)
         fun onInAppContentBlocked(packageName: String, keyword: String)
+        fun requestSurgicalBack() // New method to trigger a back press
     }
 
     fun setBlockingEventListener(l: BlockingEventListener?) { listener = l }
@@ -232,39 +233,47 @@ class AppBlockingManager private constructor(private val context: Context) {
         
         val lower = screenText.lowercase()
         val isYouTube = packageName == "com.google.android.youtube"
-        val containsShorts = lower.contains("shorts") || lower.contains("shorts tab")
-
-        // Specialized Logic for YouTube Shorts (30-second Grace Period)
-        if (isYouTube && containsShorts) {
+        val isInstagram = packageName == "com.instagram.android"
+        val isSnapchat = packageName == "com.snapchat.android"
+        
+        // --- 1. YouTube Shorts (30s Grace then Full Block) ---
+        if (isYouTube && (lower.contains("shorts") || lower.contains("shorts tab"))) {
             val now = System.currentTimeMillis()
             if (shortsStartTime == 0L) {
-                Log.d(TAG, "YouTube Shorts detected! Starting 30s grace period...")
                 shortsStartTime = now
+                Log.d(TAG, "YT Shorts: Starting 30s grace...")
             } else if (now - shortsStartTime > SHORTS_GRACE_PERIOD_MS) {
-                Log.w(TAG, "!!! BLOCKING YOUTUBE: Grace period (30s) for Shorts expired.")
-                shortsStartTime = 0L // Reset for next time
-                listener?.onInAppContentBlocked(packageName, "YouTube Shorts (Limit Exceeded)")
-                showBlockScreen(packageName, getAppName(packageName), "You spent >30s on Shorts. Mission First!")
-            }
-            return // Skip standard keyword check if we are in YT Shorts logic
-        } else if (isYouTube && !containsShorts) {
-            // User exited shorts but still in YouTube
-            if (shortsStartTime != 0L) {
-                Log.d(TAG, "User exited YouTube Shorts. Grace period reset.")
+                Log.w(TAG, "YT Shorts: Grace expired. Blocking App.")
                 shortsStartTime = 0L
+                showBlockScreen(packageName, "YouTube", "Time's up on Shorts!")
             }
+            return
         }
 
-        // Standard Keyword Check for other apps and other YT content
+        // --- 2. Instagram Reels (Surgical Back - Immediate) ---
+        if (isInstagram && (lower.contains("reels") || lower.contains("reels tab"))) {
+            Log.w(TAG, "Insta Reels: Surgical Back Triggered")
+            listener?.requestSurgicalBack()
+            return
+        }
+
+        // --- 3. Snapchat Spotlight (Surgical Back - Immediate) ---
+        if (isSnapchat && (lower.contains("spotlight") || lower.contains("discover"))) {
+            Log.w(TAG, "Snap Spotlight: Surgical Back Triggered")
+            listener?.requestSurgicalBack()
+            return
+        }
+
+        // Standard keyword check for other apps
         for (keyword in blockedKeywords) {
             if (lower.contains(keyword)) {
-                Log.w(TAG, "!!! BLOCKING CONTENT in $packageName: keyword '$keyword' found")
-                listener?.onInAppContentBlocked(packageName, keyword)
+                Log.w(TAG, "Keyword Block: $keyword in $packageName")
                 showBlockScreen(packageName, getAppName(packageName), keyword)
                 break
             }
         }
     }
+
 
     private fun showBlockScreen(packageName: String, appName: String, keyword: String? = null) {
         val intent = Intent(context, BlockScreenActivity::class.java).apply {
