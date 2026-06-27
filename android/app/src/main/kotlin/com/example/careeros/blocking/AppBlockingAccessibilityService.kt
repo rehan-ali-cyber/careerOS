@@ -23,9 +23,10 @@ import kotlinx.coroutines.launch
 
 class AppBlockingAccessibilityService : AccessibilityService() {
 
-    private val TAG = "SurgicalWarden"
+    private val TAG = "WardenService"
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private lateinit var repository: AppBlockingRepository
+    private var lastBlockedPackage: String? = null
 
     private var windowManager: WindowManager? = null
     private var overlayView: View? = null
@@ -33,6 +34,8 @@ class AppBlockingAccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+        Log.e(TAG, "!!! Warden Service Connected !!!")
+        
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         val db = AppBlockingDatabase.getInstance(applicationContext)
         repository = AppBlockingRepository(applicationContext, db)
@@ -49,54 +52,48 @@ class AppBlockingAccessibilityService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         val packageName = event?.packageName?.toString() ?: return
+        
         if (packageName == this.packageName || packageName == "com.android.systemui") return
 
-        val rootNode = rootInActiveWindow ?: return
-        val className = event.className?.toString() ?: ""
-
         serviceScope.launch {
+            // 1. FULL APP BLOCKING
             if (repository.shouldBlock(packageName)) {
+                Log.w(TAG, "!!! BLOCKING ENTIRE APP: $packageName")
                 launch(Dispatchers.Main) { 
                     hideOverlay()
                     launchBlockScreen(packageName) 
                 }
                 return@launch
+            } else {
+                lastBlockedPackage = null
             }
 
-            analyzeAddictionContext(packageName, className, rootNode)
-        }
-    }
+            // 2. SURGICAL BLOCKING
+            val rootNode = rootInActiveWindow
+            if (rootNode == null) {
+                launch(Dispatchers.Main) { hideOverlay() }
+                return@launch
+            }
 
-    private suspend fun analyzeAddictionContext(pkg: String, className: String, root: AccessibilityNodeInfo) {
-        var isAddictiveArea = false
-        var message = "Mission Focus Active"
+            val isShorts = checkNodeForId(rootNode, "com.google.android.youtube:id/shorts_player_view")
+            val isReels = checkNodeForId(rootNode, "com.instagram.android:id/clips_viewer_container")
+            val isSpotlight = checkNodeForId(rootNode, "com.snapchat.android:id/spotlight_tab_container")
 
-        when (pkg) {
-            "com.instagram.android" -> {
-                val isReels = className.contains("ClipsViewer", ignoreCase = true) || 
-                             checkNodeForId(root, "com.instagram.android:id/clips_viewer_container")
-                val isDM = checkNodeForId(root, "com.instagram.android:id/message_list_recycler_view")
+            launch(Dispatchers.Main) {
+                val shouldShow = when {
+                    isShorts && repository.isGuardianEnabled("YouTube Shorts") -> true
+                    isReels && repository.isGuardianEnabled("Instagram Reels") -> true
+                    isSpotlight && repository.isGuardianEnabled("Snapchat Spotlight") -> true
+                    else -> false
+                }
 
-                if (isReels && repository.isGuardianEnabled("Instagram Reels")) {
-                    isAddictiveArea = true
-                    message = "Reels Restricted: Return to Mission"
-                } else if (isDM && repository.isGuardianEnabled("Instagram DMs")) {
-                    isAddictiveArea = true
-                    message = "DMs Restricted during focus"
+                if (shouldShow) {
+                    Log.i(TAG, "Activating Surgical Overlay for $packageName")
+                    showOverlay("Addiction Blocked: Return to Mission")
+                } else {
+                    hideOverlay()
                 }
             }
-            "com.google.android.youtube" -> {
-                if (checkNodeForId(root, "com.google.android.youtube:id/shorts_player_view") && 
-                    repository.isGuardianEnabled("YouTube Shorts")) {
-                    isAddictiveArea = true
-                    message = "Shorts Restricted"
-                }
-            }
-        }
-
-        serviceScope.launch(Dispatchers.Main) {
-            if (isAddictiveArea) showOverlay(message)
-            else hideOverlay()
         }
     }
 
@@ -113,6 +110,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
 
     private fun showOverlay(message: String) {
         if (isOverlayShowing) return
+
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
             (resources.displayMetrics.heightPixels * 0.85).toInt(),
@@ -124,7 +122,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
 
         val container = FrameLayout(this).apply {
             setBackgroundColor(Color.parseColor("#FB000000"))
-            val tv = TextView(this.context).apply {
+            val tv = TextView(this@AppBlockingAccessibilityService).apply {
                 text = message
                 setTextColor(Color.WHITE)
                 textSize = 20f
@@ -138,7 +136,9 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         try {
             windowManager?.addView(overlayView, params)
             isOverlayShowing = true
-        } catch (e: Exception) {}
+        } catch (e: Exception) {
+            Log.e(TAG, "Overlay Display Error: ${e.message}")
+        }
     }
 
     private fun hideOverlay() {
@@ -150,6 +150,9 @@ class AppBlockingAccessibilityService : AccessibilityService() {
     }
 
     private fun launchBlockScreen(packageName: String) {
+        if (lastBlockedPackage == packageName) return
+        lastBlockedPackage = packageName
+
         val intent = Intent(this, BlockScreenActivity::class.java).apply {
             putExtra(BlockScreenActivity.EXTRA_PACKAGE_NAME, packageName)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
