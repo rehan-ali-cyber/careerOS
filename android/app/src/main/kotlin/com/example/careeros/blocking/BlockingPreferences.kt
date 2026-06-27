@@ -11,6 +11,7 @@ object BlockingPreferences {
     private const val KEY_BLOCKED_APPS = "blocked_apps"
     private const val KEY_BLOCKED_KEYWORDS = "blocked_keywords"
     private const val KEY_SCHEDULES = "blocking_schedules"
+    private const val KEY_APP_LIMITS = "app_limits"
     private val gson = Gson()
 
     private fun prefs(context: Context): SharedPreferences =
@@ -50,6 +51,18 @@ object BlockingPreferences {
             val type = object : TypeToken<List<BlockSchedule>>() {}.type
             gson.fromJson(json, type) ?: emptyList()
         } catch (e: Exception) { emptyList() }
+    }
+
+    fun saveAppLimits(context: Context, limits: Map<String, Int>) {
+        prefs(context).edit().putString(KEY_APP_LIMITS, gson.toJson(limits)).apply()
+    }
+
+    fun getAppLimits(context: Context): Map<String, Int> {
+        val json = prefs(context).getString(KEY_APP_LIMITS, null) ?: return emptyMap()
+        return try {
+            val type = object : TypeToken<Map<String, Int>>() {}.type
+            gson.fromJson(json, type) ?: emptyMap()
+        } catch (e: Exception) { emptyMap() }
     }
 
     fun clearAll(context: Context) {

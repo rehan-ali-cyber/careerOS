@@ -44,8 +44,7 @@ class AppMonitorService : Service() {
         }
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, buildNotification())
-        blockingManager = AppBlockingManager(applicationContext)
-        blockingManager.loadSavedRules()
+        blockingManager = AppBlockingManager.getInstance(applicationContext)
         blockingManager.setBlockingEventListener(object : AppBlockingManager.BlockingEventListener {
             override fun onAppBlocked(packageName: String, appName: String) {}
             override fun onInAppContentBlocked(packageName: String, keyword: String) {}

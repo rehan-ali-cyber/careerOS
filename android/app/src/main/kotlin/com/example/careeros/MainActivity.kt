@@ -91,6 +91,25 @@ class MainActivity: FlutterActivity() {
                     }
                     result.success(apps)
                 }
+                "getAppLimits" -> {
+                    result.success(blockingManager.getAppLimits())
+                }
+                "setAppLimit" -> {
+                    val pkg = call.argument<String>("packageName")
+                    val mins = call.argument<Int>("minutes")
+                    if (pkg != null && mins != null) {
+                        blockingManager.setAppLimit(pkg, mins)
+                    }
+                    result.success(null)
+                }
+                "getDailyUsage" -> {
+                    val pkg = call.argument<String>("packageName")
+                    if (pkg != null) {
+                        result.success(blockingManager.getDailyUsageMinutes(pkg))
+                    } else {
+                        result.error("INVALID_ARG", "Package name required", null)
+                    }
+                }
                 else -> result.notImplemented()
             }
         }
@@ -99,8 +118,7 @@ class MainActivity: FlutterActivity() {
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
         
-        blockingManager = AppBlockingManager(this)
-        blockingManager.loadSavedRules()
+        blockingManager = AppBlockingManager.getInstance(this)
         scheduleExt = ScheduleBlockingExtension(this, blockingManager)
         scheduleExt.loadAndApplySchedules()
 

@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:usage_stats/usage_stats.dart' hide AppInfo;
-import 'package:installed_apps/installed_apps.dart';
-import 'package:installed_apps/app_info.dart';
 import '../../core/providers/wellbeing_provider.dart';
 import '../../core/widgets/neomorphic/neumorphic_container.dart';
 import 'dart:ui';
@@ -26,10 +24,9 @@ class WellbeingScreen extends ConsumerStatefulWidget {
 class _WellbeingScreenState extends ConsumerState<WellbeingScreen> with WidgetsBindingObserver {
   static const _channel = MethodChannel('com.example.careeros/lockdown');
 
-  List<String> _blockedApps = [];
-  List<Map<String, String>> _allApps = [];
+  Map<String, int> _appLimits = {};
   List<String> _blockedKeywords = [];
-  bool _isAppsLoading = false;
+  bool _isDataLoading = false;
 
   @override
   void initState() {
@@ -39,32 +36,32 @@ class _WellbeingScreenState extends ConsumerState<WellbeingScreen> with WidgetsB
   }
 
   Future<void> _loadBlockingData() async {
-    setState(() => _isAppsLoading = true);
+    setState(() => _isDataLoading = true);
     try {
-      final List<dynamic>? blocked = await _channel.invokeMethod('getBlockedApps');
+      final dynamic limitsRaw = await _channel.invokeMethod('getAppLimits');
       final List<dynamic>? keywords = await _channel.invokeMethod('getBlockedKeywords');
-      final List<dynamic>? installed = await _channel.invokeMethod('getInstalledApps');
 
       if (mounted) {
         setState(() {
-          _blockedApps = List<String>.from(blocked ?? []);
+          _appLimits = Map<String, int>.from(limitsRaw ?? {});
           _blockedKeywords = List<String>.from(keywords ?? []);
-          _allApps = (installed ?? []).map((e) => Map<String, String>.from(e)).toList();
-          _isAppsLoading = false;
+          _isDataLoading = false;
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _isAppsLoading = false);
+      if (mounted) setState(() => _isDataLoading = false);
     }
   }
 
-  Future<void> _toggleAppBlock(String packageName) async {
-    final newList = List<String>.from(_blockedApps);
-    if (newList.contains(packageName)) newList.remove(packageName);
-    else newList.add(packageName);
-
-    setState(() => _blockedApps = newList);
-    await _channel.invokeMethod('saveBlockedApps', newList);
+  Future<void> _setAppLimit(String packageName, int minutes) async {
+    setState(() {
+      if (minutes <= 0) _appLimits.remove(packageName);
+      else _appLimits[packageName] = minutes;
+    });
+    await _channel.invokeMethod('setAppLimit', {
+      'packageName': packageName,
+      'minutes': minutes,
+    });
   }
 
   void _addKeyword(String keyword) async {
@@ -94,7 +91,6 @@ class _WellbeingScreenState extends ConsumerState<WellbeingScreen> with WidgetsB
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      // Refresh permissions when user returns from settings
       ref.refresh(hasUsagePermissionProvider);
       ref.refresh(systemUsageProvider);
       _loadBlockingData();
@@ -154,8 +150,8 @@ class _WellbeingScreenState extends ConsumerState<WellbeingScreen> with WidgetsB
                     _UsageStatsOverview(stats: data),
                     const SizedBox(height: 40),
 
-                    _buildSectionLabel("SOVEREIGN GUARD: APP BLOCKER", theme),
-                    _buildAppBlockerSection(theme),
+                    _buildSectionLabel("SOVEREIGN GUARD: APP LIMITS", theme),
+                    _buildAppBreakdownList(data, theme),
                     const SizedBox(height: 40),
 
                     _buildSectionLabel("CONTENT BLOCKER: KEYWORDS", theme),
@@ -175,48 +171,23 @@ class _WellbeingScreenState extends ConsumerState<WellbeingScreen> with WidgetsB
     );
   }
 
-  Widget _buildAppBlockerSection(ThemeData theme) {
-    if (_isAppsLoading) return const Center(child: CircularProgressIndicator());
+  Widget _buildAppBreakdownList(List<UsageInfo> stats, ThemeData theme) {
+    final sortedStats = List<UsageInfo>.from(stats)
+      ..sort((a, b) => (int.tryParse(b.totalTimeInForeground ?? '0') ?? 0)
+          .compareTo(int.tryParse(a.totalTimeInForeground ?? '0') ?? 0));
 
     return NeumorphicContainer(
       borderRadius: 30,
       depth: 10,
-      padding: const EdgeInsets.symmetric(vertical: 20),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Text(
-              "Restricted applications will be immediately terminated upon detection.",
-              textAlign: TextAlign.center,
-              style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.4), fontSize: 11),
-            ),
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            height: 300,
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              itemCount: _allApps.length,
-              itemBuilder: (context, index) {
-                final app = _allApps[index];
-                final pkg = app['packageName']!;
-                final name = app['appName']!;
-                final isBlocked = _blockedApps.contains(pkg);
-
-                return ListTile(
-                  title: Text(name, style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14, fontWeight: FontWeight.bold)),
-                  subtitle: Text(pkg, style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.3), fontSize: 10)),
-                  trailing: Switch(
-                    value: isBlocked,
-                    onChanged: (_) => _toggleAppBlock(pkg),
-                    activeColor: theme.colorScheme.primary,
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
+        children: sortedStats.take(15).map((info) {
+          return _AppLimitTile(
+            info: info,
+            currentLimit: _appLimits[info.packageName],
+            onSetLimit: (mins) => _setAppLimit(info.packageName!, mins),
+          );
+        }).toList(),
       ),
     );
   }
@@ -239,6 +210,10 @@ class _WellbeingScreenState extends ConsumerState<WellbeingScreen> with WidgetsB
                   child: TextField(
                     controller: controller,
                     style: TextStyle(color: theme.colorScheme.onSurface),
+                    onSubmitted: (val) {
+                       _addKeyword(val);
+                       controller.clear();
+                    },
                     decoration: InputDecoration(
                       hintText: "Add Restricted Keyword...",
                       hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.2)),
@@ -299,6 +274,141 @@ class _WellbeingScreenState extends ConsumerState<WellbeingScreen> with WidgetsB
           fontSize: 10,
           fontWeight: FontWeight.w900,
           letterSpacing: 2
+        ),
+      ),
+    );
+  }
+}
+
+class _AppLimitTile extends ConsumerWidget {
+  final UsageInfo info;
+  final int? currentLimit;
+  final Function(int) onSetLimit;
+
+  const _AppLimitTile({
+    required this.info,
+    this.currentLimit,
+    required this.onSetLimit,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ms = int.tryParse(info.totalTimeInForeground ?? '0') ?? 0;
+    final mins = ms ~/ 60000;
+    final packageName = info.packageName ?? "Unknown";
+    final timeStr = _formatDuration(mins);
+    final theme = Theme.of(context);
+
+    final metadataAsync = ref.watch(appMetadataProvider(packageName));
+
+    return metadataAsync.when(
+      data: (app) {
+        String appName = app?.name ?? packageName.split('.').last.toUpperCase();
+        Widget icon = app?.icon != null
+          ? Image.memory(app!.icon!, width: 24, height: 24)
+          : Icon(Icons.android_rounded, color: theme.colorScheme.onSurface.withOpacity(0.24), size: 16);
+
+        return ListTile(
+          onTap: () => _showLimitDialog(context, appName, currentLimit ?? 0, onSetLimit),
+          leading: NeumorphicContainer(
+            shape: BoxShape.circle,
+            depth: 2,
+            isPressed: true,
+            padding: const EdgeInsets.all(8),
+            child: icon,
+          ),
+          title: Text(appName,
+              style: TextStyle(
+                color: theme.colorScheme.onSurface.withOpacity(0.7),
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
+          subtitle: Row(
+            children: [
+              Text(timeStr, style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.w900, fontSize: 10)),
+              if (currentLimit != null) ...[
+                const SizedBox(width: 8),
+                Text("/ ${currentLimit}m limit", style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.3), fontSize: 10)),
+              ]
+            ],
+          ),
+          trailing: Icon(
+            currentLimit != null ? Icons.timer_outlined : Icons.timer_off_outlined,
+            color: currentLimit != null ? theme.colorScheme.primary : theme.colorScheme.onSurface.withOpacity(0.1),
+            size: 18,
+          ),
+        );
+      },
+      loading: () => const ListTile(title: Text("...")),
+      error: (_, __) => ListTile(title: Text(packageName)),
+    );
+  }
+
+  void _showLimitDialog(BuildContext context, String appName, int current, Function(int) onSave) {
+    int localValue = current == 0 ? 30 : current;
+    final theme = Theme.of(context);
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: theme.scaffoldBackgroundColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28), side: BorderSide(color: theme.colorScheme.onSurface.withOpacity(0.1))),
+          title: Text("Daily Limit: $appName", style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text("Set daily usage limit in minutes. App will be blocked once reached.", style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.5), fontSize: 12)),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                   NeumorphicContainer(
+                    shape: BoxShape.circle,
+                    depth: 4,
+                    child: InkWell(
+                      onTap: () => setDialogState(() {
+                        if (localValue > 15) localValue -= 15;
+                      }),
+                      child: CircleAvatar(radius: 22, backgroundColor: Colors.transparent, child: Text("-15", style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 12))),
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                  Text("$localValue min", style: TextStyle(color: theme.colorScheme.primary, fontSize: 24, fontWeight: FontWeight.bold)),
+                  const SizedBox(width: 20),
+                  NeumorphicContainer(
+                    shape: BoxShape.circle,
+                    depth: 4,
+                    child: InkWell(
+                      onTap: () => setDialogState(() {
+                        localValue += 15;
+                      }),
+                      child: CircleAvatar(radius: 22, backgroundColor: Colors.transparent, child: Text("+15", style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 12))),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                onSave(0);
+                Navigator.pop(context);
+              },
+              child: const Text("REMOVE LIMIT", style: TextStyle(color: Colors.redAccent)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                onSave(localValue);
+                Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: theme.colorScheme.primary, foregroundColor: Colors.black),
+              child: const Text("SET LIMIT"),
+            ),
+          ],
         ),
       ),
     );
@@ -397,144 +507,55 @@ class _UsageStatsOverview extends StatelessWidget {
       return sum + (ms ~/ 60000);
     });
 
-    // Goal: 4 hours (240 mins) or dynamic
     double progress = (totalMinutes / 240.0).clamp(0.0, 1.0);
 
-    return Column(
-      children: [
-        NeumorphicContainer(
-          padding: const EdgeInsets.symmetric(vertical: 40),
-          borderRadius: 30,
-          depth: 10,
-          child: Column(
-            children: [
-              SizedBox(
-                height: 180,
-                width: 180,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    CircularProgressIndicator(
-                      value: 1.0,
-                      strokeWidth: 4,
-                      color: theme.colorScheme.onSurface.withOpacity(0.05),
-                    ),
-                    CircularProgressIndicator(
-                      value: progress,
-                      strokeWidth: 8,
-                      strokeCap: StrokeCap.round,
-                      color: progress > 0.8 ? Colors.orangeAccent : theme.colorScheme.primary,
-                    ).animate().rotate(duration: 1.seconds, begin: -0.5, end: 0),
-                    Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            _formatDuration(totalMinutes),
-                            style: TextStyle(fontSize: 42, fontWeight: FontWeight.w900, color: theme.colorScheme.onSurface),
-                          ),
-                          Text(
-                            "SCREEN TIME",
-                            style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.38), fontSize: 8, fontWeight: FontWeight.bold, letterSpacing: 2),
-                          ),
-                        ],
+    return NeumorphicContainer(
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      borderRadius: 30,
+      depth: 10,
+      child: Column(
+        children: [
+          SizedBox(
+            height: 180,
+            width: 180,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                CircularProgressIndicator(
+                  value: 1.0,
+                  strokeWidth: 4,
+                  color: theme.colorScheme.onSurface.withOpacity(0.05),
+                ),
+                CircularProgressIndicator(
+                  value: progress,
+                  strokeWidth: 8,
+                  strokeCap: StrokeCap.round,
+                  color: progress > 0.8 ? Colors.orangeAccent : theme.colorScheme.primary,
+                ).animate().rotate(duration: 1.seconds, begin: -0.5, end: 0),
+                Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _formatDuration(totalMinutes),
+                        style: TextStyle(fontSize: 42, fontWeight: FontWeight.w900, color: theme.colorScheme.onSurface),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 32),
-              Text(
-                "TOTAL COGNITIVE LOAD TODAY",
-                style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.24), fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 40),
-        const _SectionLabel(label: "APPLICATION BREAKDOWN"),
-        NeumorphicContainer(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          borderRadius: 30,
-          depth: 10,
-          child: Column(
-            children: List.generate(stats.take(15).length, (index) {
-              final info = stats[index];
-              return _AppUsageTile(info: info)
-                .animate(delay: (index * 100).ms)
-                .fadeIn(duration: 500.ms)
-                .slideY(begin: 0.1);
-            }),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _AppUsageTile extends ConsumerWidget {
-  final UsageInfo info;
-  const _AppUsageTile({required this.info});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final ms = int.tryParse(info.totalTimeInForeground ?? '0') ?? 0;
-    final mins = ms ~/ 60000;
-    final packageName = info.packageName ?? "Unknown";
-    final timeStr = _formatDuration(mins);
-    final theme = Theme.of(context);
-
-    final metadataAsync = ref.watch(appMetadataProvider(packageName));
-
-    return metadataAsync.when(
-      data: (app) {
-        String appName = app?.name ?? packageName.split('.').last.toUpperCase();
-        Widget icon = app?.icon != null
-          ? Image.memory(app!.icon!, width: 24, height: 24)
-          : Icon(Icons.android_rounded, color: theme.colorScheme.onSurface.withOpacity(0.24), size: 16);
-
-        return Column(
-          children: [
-            ListTile(
-              leading: NeumorphicContainer(
-                shape: BoxShape.circle,
-                depth: 2,
-                isPressed: true,
-                padding: const EdgeInsets.all(8),
-                child: icon,
-              ),
-              title: Text(appName,
-                  style: TextStyle(
-                    color: theme.colorScheme.onSurface.withOpacity(0.7),
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
+                      Text(
+                        "SCREEN TIME",
+                        style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.38), fontSize: 8, fontWeight: FontWeight.bold, letterSpacing: 2),
+                      ),
+                    ],
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis),
-              subtitle: Text(
-                packageName,
-                style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.24), fontSize: 9),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              trailing: Text(
-                timeStr,
-                style: TextStyle(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.w900,
                 ),
-              ),
+              ],
             ),
-          ],
-        );
-      },
-      loading: () => const ListTile(
-        leading: CircularProgressIndicator(strokeWidth: 1),
-        title: Text("Loading..."),
-      ),
-      error: (_, __) => ListTile(
-        title: Text(packageName),
-        trailing: Text(timeStr),
+          ),
+          const SizedBox(height: 32),
+          Text(
+            "TOTAL COGNITIVE LOAD TODAY",
+            style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.24), fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2),
+          ),
+        ],
       ),
     );
   }
@@ -572,28 +593,6 @@ class _ErrorCard extends StatelessWidget {
       borderRadius: 30,
       depth: 6,
       child: Text("Error fetching stats: $error", style: const TextStyle(color: Colors.redAccent, fontSize: 12)),
-    );
-  }
-}
-
-class _SectionLabel extends StatelessWidget {
-  final String label;
-  const _SectionLabel({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 12),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: theme.colorScheme.onSurface.withOpacity(0.2),
-          fontSize: 10,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 2
-        ),
-      ),
     );
   }
 }
