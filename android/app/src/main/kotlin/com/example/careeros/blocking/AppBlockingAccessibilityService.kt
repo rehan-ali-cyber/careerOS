@@ -7,11 +7,11 @@ import android.graphics.Color
 import android.graphics.PixelFormat
 import android.util.Log
 import android.view.Gravity
-import android.view.LayoutInflater
 import android.view.View
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import android.widget.FrameLayout
 import android.widget.TextView
 
 class AppBlockingAccessibilityService : AccessibilityService() {
@@ -55,7 +55,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
 
     private fun showOverlay(message: String) {
         if (isOverlayShowing) {
-            overlayView?.findViewById<TextView>(android.R.id.text1)?.text = message
+            overlayView?.findViewById<TextView>(12345)?.text = message
             return
         }
 
@@ -65,6 +65,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O)
                 WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
             else
+                @Suppress("DEPRECATION")
                 WindowManager.LayoutParams.TYPE_PHONE,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
             PixelFormat.TRANSLUCENT
@@ -72,35 +73,19 @@ class AppBlockingAccessibilityService : AccessibilityService() {
 
         params.gravity = Gravity.TOP
 
-        overlayView = View(this).apply {
-            setBackgroundColor(Color.BLACK)
-            // Add a simple message
-            val tv = TextView(context).apply {
-                id = android.R.id.text1
-                text = message
-                setTextColor(Color.WHITE)
-                gravity = Gravity.CENTER
-                textSize = 20f
-            }
-            if (this is android.widget.FrameLayout) {
-                 // Not a framelayout by default, let's use a container
-            }
-        }
-
-        // Simpler approach for the overlay view
-        val container = android.widget.FrameLayout(this).apply {
-            setBackgroundColor(Color.parseColor("#EE000000")) // Semi-transparent black
+        val container = FrameLayout(this).apply {
+            setBackgroundColor(Color.parseColor("#FB000000")) // Deep Black
             val tv = TextView(this.context).apply {
-                id = android.R.id.text1
+                id = 12345
                 text = message
                 setTextColor(Color.WHITE)
                 textSize = 22f
                 gravity = Gravity.CENTER
-                setPadding(40, 40, 40, 40)
+                setPadding(60, 60, 60, 60)
             }
-            addView(tv, android.widget.FrameLayout.LayoutParams(
-                android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
-                android.widget.FrameLayout.LayoutParams.MATCH_PARENT
+            addView(tv, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
             ))
         }
 
@@ -109,7 +94,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         try {
             windowManager?.addView(overlayView, params)
             isOverlayShowing = true
-            Log.d(TAG, "Overlay Displayed")
+            Log.d(TAG, "Surgical Overlay Displayed")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to add overlay: ${e.message}")
         }
@@ -120,7 +105,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         try {
             windowManager?.removeView(overlayView)
             isOverlayShowing = false
-            Log.d(TAG, "Overlay Removed")
+            Log.d(TAG, "Surgical Overlay Removed")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to remove overlay")
         }
@@ -134,9 +119,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         
         val rootNode = rootInActiveWindow ?: return
         
-        // --- DEEP INSPECTION (FULL SCREEN ONLY) ---
-        // We look for specific view IDs that represent the full-screen players
-        // This avoids blocking small preview tiles on the home feed.
+        // --- 1. FULL-SCREEN VIDEO DETECTION (IDs Only - NO KEYWORDS) ---
         val isShortsFullscreen = checkNodeForIdOnly(rootNode, "com.google.android.youtube:id/shorts_player_view")
         val isReelsFullscreen = checkNodeForIdOnly(rootNode, "com.instagram.android:id/clips_viewer_container")
         val isSpotlightFullscreen = checkNodeForIdOnly(rootNode, "com.snapchat.android:id/spotlight_tab_container")
@@ -147,12 +130,29 @@ class AppBlockingAccessibilityService : AccessibilityService() {
                 isReelsFullscreen -> "Reels"
                 else -> "Spotlight"
             }
-            Log.i(TAG, "Full-Screen Surgical Match: $type in $pkg")
             blockingManager.checkInAppContent(pkg, type)
             return
         }
 
-        // Fallback to text extraction only for custom keywords (NOT for surgical blocks)
+        // --- 2. SURGICAL FEATURE DETECTION (Contextual) ---
+        if (pkg == "com.instagram.android") {
+            if (checkNodeForIdOnly(rootNode, "com.instagram.android:id/action_bar_title")) {
+                val title = findTextById(rootNode, "com.instagram.android:id/action_bar_title")
+                if (title?.contains("Messages", ignoreCase = true) == true || title?.contains("Direct", ignoreCase = true) == true) {
+                    blockingManager.checkInAppContent(pkg, "InstaDM")
+                    return
+                }
+            }
+        }
+        
+        if (pkg == "com.snapchat.android") {
+            if (checkNodeForIdOnly(rootNode, "com.snapchat.android:id/chat_v2_container")) {
+                blockingManager.checkInAppContent(pkg, "SnapChatUI")
+                return
+            }
+        }
+
+        // Fallback to text extraction for custom user-defined keywords (Shows FULL block screen)
         val screenText = extractTextFromNode(rootNode)
         if (pkg == lastCheckedPackage && screenText == lastCheckedText) return
         lastCheckedPackage = pkg
@@ -163,17 +163,7 @@ class AppBlockingAccessibilityService : AccessibilityService() {
 
     private fun checkNodeForIdOnly(node: AccessibilityNodeInfo?, targetId: String): Boolean {
         if (node == null) return false
-        
-        if (node.viewIdResourceName == targetId) {
-            // VERIFY DIMENSIONS: Ensure it's likely full screen
-            val rect = android.graphics.Rect()
-            node.getBoundsInScreen(rect)
-            val screenHeight = resources.displayMetrics.heightPixels
-            // If the viewer takes up more than 70% of the screen height, it's the full-screen player
-            if (rect.height() > (screenHeight * 0.7)) {
-                return true
-            }
-        }
+        if (node.viewIdResourceName == targetId) return true
         
         for (i in 0 until node.childCount) {
             if (checkNodeForIdOnly(node.getChild(i), targetId)) return true
@@ -181,7 +171,16 @@ class AppBlockingAccessibilityService : AccessibilityService() {
         return false
     }
 
-
+    private fun findTextById(node: AccessibilityNodeInfo?, targetId: String): String? {
+        if (node == null) return null
+        if (node.viewIdResourceName == targetId) return node.text?.toString()
+        
+        for (i in 0 until node.childCount) {
+            val result = findTextById(node.getChild(i), targetId)
+            if (result != null) return result
+        }
+        return null
+    }
 
     override fun onInterrupt() {
         Log.w(TAG, "Accessibility Service Interrupted")

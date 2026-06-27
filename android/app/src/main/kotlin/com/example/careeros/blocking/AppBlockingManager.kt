@@ -33,7 +33,9 @@ class AppBlockingManager private constructor(private val context: Context) {
 
     private val blockedApps = mutableSetOf<String>()
     private val blockedKeywords = mutableSetOf<String>()
+    private val guardianBlocks = mutableSetOf<String>() // Specific surgical blocks
     private val appLimits = mutableMapOf<String, Int>() // Package to Limit in Minutes
+
     private var lastBlockedPackage: String? = null
     private var listener: BlockingEventListener? = null
 
@@ -110,7 +112,25 @@ class AppBlockingManager private constructor(private val context: Context) {
         BlockingPreferences.saveAppLimits(context, appLimits)
     }
 
+    fun setGuardianBlock(key: String, enabled: Boolean) {
+        if (enabled) guardianBlocks.add(key)
+        else guardianBlocks.remove(key)
+        BlockingPreferences.saveGuardianBlocks(context, guardianBlocks)
+        Log.d(TAG, "Guardian Block Updated: $key -> $enabled")
+    }
+
+    fun isGuardianEnabled(key: String): Boolean = guardianBlocks.contains(key)
+
     fun getAppLimits(): Map<String, Int> = appLimits.toMap()
+
+    fun getGuardianBlocks(): List<String> = guardianBlocks.toList()
+
+    fun syncGuardianBlocks(newList: List<String>) {
+        guardianBlocks.clear()
+        guardianBlocks.addAll(newList)
+        BlockingPreferences.saveGuardianBlocks(context, guardianBlocks)
+        Log.d(TAG, "Guardian Blocks Synced: ${guardianBlocks.size} rules active")
+    }
 
     fun blockKeyword(keyword: String) { 
         val k = keyword.lowercase()
@@ -130,14 +150,18 @@ class AppBlockingManager private constructor(private val context: Context) {
         val apps = BlockingPreferences.getBlockedApps(context)
         val keywords = BlockingPreferences.getBlockedKeywords(context)
         val limits = BlockingPreferences.getAppLimits(context)
+        val guardians = BlockingPreferences.getGuardianBlocks(context)
         blockedApps.clear()
         blockedApps.addAll(apps)
         blockedKeywords.clear()
         blockedKeywords.addAll(keywords)
         appLimits.clear()
         appLimits.putAll(limits)
-        Log.d(TAG, "Rules Loaded: ${blockedApps.size} apps, ${blockedKeywords.size} keywords, ${appLimits.size} limits")
+        guardianBlocks.clear()
+        guardianBlocks.addAll(guardians)
+        Log.d(TAG, "Rules Loaded: ${blockedApps.size} apps, ${blockedKeywords.size} keywords, ${appLimits.size} limits, ${guardianBlocks.size} guardians")
     }
+
     
     fun getBlockedApps(): Set<String> = blockedApps.toSet()
     fun getBlockedKeywords(): Set<String> = blockedKeywords.toSet()
@@ -241,29 +265,42 @@ class AppBlockingManager private constructor(private val context: Context) {
         val isShorts = screenText == "Shorts"
         val isReels = screenText == "Reels"
         val isSpotlight = screenText == "Spotlight"
+        val isInstaDM = screenText == "InstaDM"
+        val isSnapChat = screenText == "SnapChatUI"
 
         // --- 1. YouTube Shorts ---
-        if (isYouTube && isShorts) {
+        if (isYouTube && isShorts && isGuardianEnabled("YouTube Shorts")) {
             val now = System.currentTimeMillis()
             if (shortsStartTime == 0L) {
                 shortsStartTime = now
                 Log.d(TAG, "YT Shorts: Starting grace period")
             } else if (now - shortsStartTime > SHORTS_GRACE_PERIOD_MS) {
-                // Instead of blocking whole app, show OVERLAY
                 listener?.requestOverlay(true, "Shorts Blocked: Mission First!")
             }
             return
         }
 
         // --- 2. Instagram Reels ---
-        if (isInstagram && isReels) {
+        if (isInstagram && isReels && isGuardianEnabled("Instagram Reels")) {
             listener?.requestOverlay(true, "Reels Blocked: Focus Engaged!")
             return
         }
 
         // --- 3. Snapchat Spotlight ---
-        if (isSnapchat && isSpotlight) {
+        if (isSnapchat && isSpotlight && isGuardianEnabled("Snapchat Spotlight")) {
             listener?.requestOverlay(true, "Spotlight Blocked: Stay Disciplined!")
+            return
+        }
+
+        // --- 4. Instagram DMs ---
+        if (isInstagram && isInstaDM && isGuardianEnabled("Instagram DMs")) {
+            listener?.requestOverlay(true, "DMs Restricted during Focus.")
+            return
+        }
+
+        // --- 5. Snapchat Chat ---
+        if (isSnapchat && isSnapChat && isGuardianEnabled("Snapchat Chat")) {
+            listener?.requestOverlay(true, "Snapchat Chat Restricted.")
             return
         }
 
@@ -273,7 +310,7 @@ class AppBlockingManager private constructor(private val context: Context) {
             if (!isShorts) shortsStartTime = 0L
         }
 
-        // Standard keyword check for other apps
+        // Standard keyword check for other apps (shows full block screen)
         for (keyword in blockedKeywords) {
             if (lower.contains(keyword)) {
                 Log.w(TAG, "Keyword Block: $keyword in $packageName")
@@ -282,6 +319,7 @@ class AppBlockingManager private constructor(private val context: Context) {
             }
         }
     }
+
 
 
     private fun showBlockScreen(packageName: String, appName: String, keyword: String? = null) {

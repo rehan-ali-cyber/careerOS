@@ -12,6 +12,7 @@ object BlockingPreferences {
     private const val KEY_BLOCKED_KEYWORDS = "blocked_keywords"
     private const val KEY_SCHEDULES = "blocking_schedules"
     private const val KEY_APP_LIMITS = "app_limits"
+    private const val KEY_GUARDIAN_BLOCKS = "guardian_blocks"
     private val gson = Gson()
 
     private fun prefs(context: Context): SharedPreferences =
@@ -63,6 +64,18 @@ object BlockingPreferences {
             val type = object : TypeToken<Map<String, Int>>() {}.type
             gson.fromJson(json, type) ?: emptyMap()
         } catch (e: Exception) { emptyMap() }
+    }
+
+    fun saveGuardianBlocks(context: Context, blocks: Set<String>) {
+        prefs(context).edit().putString(KEY_GUARDIAN_BLOCKS, gson.toJson(blocks)).apply()
+    }
+
+    fun getGuardianBlocks(context: Context): Set<String> {
+        val json = prefs(context).getString(KEY_GUARDIAN_BLOCKS, null) ?: return emptySet()
+        return try {
+            val type = object : TypeToken<Set<String>>() {}.type
+            gson.fromJson(json, type) ?: emptySet()
+        } catch (e: Exception) { emptySet() }
     }
 
     fun clearAll(context: Context) {

@@ -102,6 +102,14 @@ class MainActivity: FlutterActivity() {
                     }
                     result.success(null)
                 }
+                "getGuardianBlocks" -> {
+                    result.success(blockingManager.getGuardianBlocks())
+                }
+                "saveGuardianBlocks" -> {
+                    val blocks = call.arguments as List<String>
+                    blockingManager.syncGuardianBlocks(blocks)
+                    result.success(null)
+                }
                 "getDailyUsage" -> {
                     val pkg = call.argument<String>("packageName")
                     if (pkg != null) {

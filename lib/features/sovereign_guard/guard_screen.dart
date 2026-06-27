@@ -14,14 +14,14 @@ class GuardScreen extends ConsumerStatefulWidget {
 class _GuardScreenState extends ConsumerState<GuardScreen> {
   static const _channel = MethodChannel('com.example.careeros/lockdown');
 
-  // Logic: Map human-readable toggles to specific sets of keywords
-  final Map<String, List<String>> _guardianRules = {
-    "Instagram Reels": ["reels", "reels tab", "explore", "video", "audio"],
-    "Instagram DMs": ["messages", "chats", "direct", "requests"],
-    "YouTube Shorts": ["shorts", "shorts tab", "trending", "explore"],
-    "Snapchat Spotlight": ["spotlight", "discover", "stories"],
-    "Snapchat Chat": ["chats", "messages", "friends"],
-  };
+  // Human-readable titles that the Native side understands specifically
+  final List<String> _guardFeatures = [
+    "Instagram Reels",
+    "Instagram DMs",
+    "YouTube Shorts",
+    "Snapchat Spotlight",
+    "Snapchat Chat",
+  ];
 
   List<String> _activeBlocks = [];
   bool _isLoading = false;
@@ -35,20 +35,10 @@ class _GuardScreenState extends ConsumerState<GuardScreen> {
   Future<void> _loadCurrentBlocks() async {
     setState(() => _isLoading = true);
     try {
-      final List<dynamic>? keywords = await _channel.invokeMethod('getBlockedKeywords');
-      final currentKeywords = List<String>.from(keywords ?? []);
-
-      List<String> active = [];
-      _guardianRules.forEach((key, words) {
-        // If ALL keywords for a rule are present, mark as active
-        if (words.every((w) => currentKeywords.contains(w.toLowerCase()))) {
-          active.add(key);
-        }
-      });
-
+      final List<dynamic>? blocks = await _channel.invokeMethod('getGuardianBlocks');
       if (mounted) {
         setState(() {
-          _activeBlocks = active;
+          _activeBlocks = List<String>.from(blocks ?? []);
           _isLoading = false;
         });
       }
@@ -57,38 +47,15 @@ class _GuardScreenState extends ConsumerState<GuardScreen> {
     }
   }
 
-  Future<void> _toggleGuardian(String ruleKey) async {
+  Future<void> _toggleGuardian(String feature) async {
     final newList = List<String>.from(_activeBlocks);
-    final bool turningOn = !newList.contains(ruleKey);
-
-    if (turningOn) newList.add(ruleKey);
-    else newList.remove(ruleKey);
+    if (newList.contains(feature)) newList.remove(feature);
+    else newList.add(feature);
 
     setState(() => _activeBlocks = newList);
 
-    // Update native keywords
     try {
-      final List<dynamic>? currentKeywordsRaw = await _channel.invokeMethod('getBlockedKeywords');
-      final currentKeywords = List<String>.from(currentKeywordsRaw ?? []);
-
-      final targetWords = _guardianRules[ruleKey]!;
-
-      if (turningOn) {
-        for (var w in targetWords) {
-          if (!currentKeywords.contains(w.toLowerCase())) currentKeywords.add(w.toLowerCase());
-        }
-      } else {
-        // Only remove if they aren't part of ANOTHER active block
-        for (var w in targetWords) {
-          bool keep = false;
-          _activeBlocks.forEach((otherKey) {
-            if (otherKey != ruleKey && _guardianRules[otherKey]!.contains(w)) keep = true;
-          });
-          if (!keep) currentKeywords.remove(w.toLowerCase());
-        }
-      }
-
-      await _channel.invokeMethod('saveBlockedKeywords', currentKeywords);
+      await _channel.invokeMethod('saveGuardianBlocks', newList);
     } catch (e) {
       debugPrint("Failed to sync guardian: $e");
     }
@@ -127,16 +94,16 @@ class _GuardScreenState extends ConsumerState<GuardScreen> {
               const SizedBox(height: 40),
 
               _buildSectionLabel("INSTAGRAM DEFENSE", theme),
-              _buildGuardTile("Instagram Reels", "Blocks vertical scrolling addictive content", Icons.video_library_rounded, theme),
-              _buildGuardTile("Instagram DMs", "Blocks distraction from direct messaging", Icons.chat_bubble_outline_rounded, theme),
+              _buildGuardTile("Instagram Reels", "Blocks full-screen Reels player with black overlay", Icons.video_library_rounded, theme),
+              _buildGuardTile("Instagram DMs", "Blocks direct messages with black overlay", Icons.chat_bubble_outline_rounded, theme),
 
               const SizedBox(height: 32),
               _buildSectionLabel("YOUTUBE DEFENSE", theme),
-              _buildGuardTile("YouTube Shorts", "Blocks addictive short-form video tab", Icons.play_circle_outline_rounded, theme),
+              _buildGuardTile("YouTube Shorts", "Blocks full-screen Shorts (30s grace period)", Icons.play_circle_outline_rounded, theme),
 
               const SizedBox(height: 32),
               _buildSectionLabel("SNAPCHAT DEFENSE", theme),
-              _buildGuardTile("Snapchat Spotlight", "Blocks spotlight scrolling & stories", Icons.flare_rounded, theme),
+              _buildGuardTile("Snapchat Spotlight", "Blocks full-screen Spotlight player", Icons.flare_rounded, theme),
               _buildGuardTile("Snapchat Chat", "Blocks chat interface distraction", Icons.message_outlined, theme),
 
               const SizedBox(height: 60),
@@ -153,10 +120,10 @@ class _GuardScreenState extends ConsumerState<GuardScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("In-App Warden", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: theme.colorScheme.onSurface, letterSpacing: -1.5)),
+        Text("Surgical Warden", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: theme.colorScheme.onSurface, letterSpacing: -1.5)),
         const SizedBox(height: 8),
         Text(
-          "Surgical precision blocking for specific app features. Kill the addiction, keep the utility.",
+          "No more full app blocking. We only cover the addictive content while leaving the app's navigation bar open.",
           style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.5), fontSize: 14),
         ),
       ],
@@ -214,7 +181,7 @@ class _GuardScreenState extends ConsumerState<GuardScreen> {
           const SizedBox(width: 16),
           Expanded(
             child: Text(
-              "Accessibility Service is actively monitoring system UI to enforce these surgical blocks.",
+              "Sovereign Guard uses View IDs and UI Hierarchy analysis. It does NOT rely on keywords for these surgical blocks.",
               style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.4), fontSize: 11, fontStyle: FontStyle.italic),
             ),
           ),
