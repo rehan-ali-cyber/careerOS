@@ -31,10 +31,15 @@ class WellbeingService {
       if (hasPermission != true) return {};
 
       DateTime now = DateTime.now();
-      DateTime start = DateTime(now.year, now.month, now.day);
+      // Start of day logic: Exactly 12:00 AM Today
+      DateTime startOfDay = DateTime(now.year, now.month, now.day, 0, 0, 0);
 
-      // Use query and aggregate to get total time for each package today
-      return await UsageStats.queryAndAggregateUsageStats(start, now);
+      if (kDebugMode) {
+        debugPrint('Wellbeing: Querying from ${startOfDay.toIso8601String()} to ${now.toIso8601String()}');
+      }
+
+      // Use query and aggregate to get total time for each package from midnight until now
+      return await UsageStats.queryAndAggregateUsageStats(startOfDay, now);
     } catch (e) {
       if (kDebugMode) debugPrint('Wellbeing: Query Error: $e');
       return {};

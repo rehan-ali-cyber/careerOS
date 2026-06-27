@@ -423,12 +423,12 @@ class _Header extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "Digital Wellbeing",
+          "Today's Screen Time",
           style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: theme.colorScheme.onSurface, letterSpacing: -1.5),
         ).animate().fadeIn().slideX(begin: -0.1),
         const SizedBox(height: 4),
         Text(
-          "SYSTEM-WIDE COGNITIVE AUDIT",
+          "RESETTING EVERY MIDNIGHT • 12:00 AM",
           style: TextStyle(fontSize: 10, color: theme.colorScheme.primary.withOpacity(0.8), fontWeight: FontWeight.w800, letterSpacing: 1.5),
         ).animate().fadeIn(delay: 200.ms),
       ],
