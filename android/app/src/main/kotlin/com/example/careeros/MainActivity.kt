@@ -9,37 +9,100 @@ import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.os.Build
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.os.UserManager
-import android.view.KeyEvent
-import android.view.View
 import android.view.WindowManager
-import com.example.careeros.blocking.AppBlockingManager
-import com.example.careeros.blocking.AppMonitorService
-import com.example.careeros.blocking.ScheduleBlockingExtension
+import com.example.careeros.blocking.BlockScreenActivity
+import com.example.careeros.blocking.data.AppBlockingDatabase
+import com.example.careeros.blocking.data.AppBlockingRepository
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "com.example.careeros/lockdown"
+    private val mainScope = CoroutineScope(Dispatchers.Main)
+    private lateinit var repository: AppBlockingRepository
+    
     private var audioManager: AudioManager? = null
     private var audioFocusRequest: AudioFocusRequest? = null
     private var isLockdownActive = false
     private var engine: FlutterEngine? = null
-    
     private val handler = Handler(Looper.getMainLooper())
     private var monitoringTask: Runnable? = null
 
-    private lateinit var blockingManager: AppBlockingManager
-    private lateinit var scheduleExt: ScheduleBlockingExtension
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val db = AppBlockingDatabase.getInstance(this)
+        repository = AppBlockingRepository(this, db)
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         this.engine = flutterEngine
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
+                // Professional App Blocking Methods
+                "addBlockedApp" -> {
+                    val pkg = call.argument<String>("packageName") ?: ""
+                    val name = call.argument<String>("appName") ?: ""
+                    mainScope.launch(Dispatchers.IO) {
+                        repository.addBlockedApp(pkg, name)
+                        launch(Dispatchers.Main) { result.success(null) }
+                    }
+                }
+                "removeBlockedApp" -> {
+                    val pkg = call.argument<String>("packageName") ?: ""
+                    mainScope.launch(Dispatchers.IO) {
+                        repository.removeBlockedApp(pkg)
+                        launch(Dispatchers.Main) { result.success(null) }
+                    }
+                }
+                "setSchedule" -> {
+                    val pkg = call.argument<String>("packageName") ?: ""
+                    val startH = call.argument<Int>("startHour") ?: 0
+                    val startM = call.argument<Int>("startMinute") ?: 0
+                    val endH = call.argument<Int>("endHour") ?: 0
+                    val endM = call.argument<Int>("endMinute") ?: 0
+                    val days = call.argument<String>("daysOfWeek") ?: ""
+                    mainScope.launch(Dispatchers.IO) {
+                        repository.setSchedule(pkg, startH, startM, endH, endM, days)
+                        launch(Dispatchers.Main) { result.success(null) }
+                    }
+                }
+                "getAppLimits" -> {
+                    mainScope.launch(Dispatchers.IO) {
+                        val limits = repository.getAppLimits()
+                        launch(Dispatchers.Main) { result.success(limits) }
+                    }
+                }
+                "setAppLimit" -> {
+                    val pkg = call.argument<String>("packageName") ?: ""
+                    val mins = call.argument<Int>("minutes") ?: 0
+                    mainScope.launch(Dispatchers.IO) {
+                        repository.setAppLimit(pkg, mins)
+                        launch(Dispatchers.Main) { result.success(null) }
+                    }
+                }
+                "getGuardianBlocks" -> {
+                    mainScope.launch(Dispatchers.IO) {
+                        val blocks = repository.getGuardianBlocks()
+                        launch(Dispatchers.Main) { result.success(blocks) }
+                    }
+                }
+                "saveGuardianBlocks" -> {
+                    val blocks = call.arguments as? List<String> ?: emptyList()
+                    mainScope.launch(Dispatchers.IO) {
+                        repository.syncGuardianBlocks(blocks)
+                        launch(Dispatchers.Main) { result.success(null) }
+                    }
+                }
+
+                // Lockdown / Zen Mode Methods
                 "startLockdown" -> {
                     isLockdownActive = true
                     startLockdown()
@@ -63,100 +126,9 @@ class MainActivity: FlutterActivity() {
                 "isDeviceOwner" -> {
                     result.success(isDeviceOwner())
                 }
-                // App Blocker Methods
-                "getBlockedApps" -> {
-                    result.success(blockingManager.getBlockedApps().toList())
-                }
-                "saveBlockedApps" -> {
-                    val apps = call.arguments as List<String>
-                    for (pkg in apps) blockingManager.blockApp(pkg)
-                    // Also need to handle removal
-                    val current = blockingManager.getBlockedApps()
-                    for (pkg in current) if (!apps.contains(pkg)) blockingManager.unblockApp(pkg)
-                    result.success(null)
-                }
-                "getBlockedKeywords" -> {
-                    result.success(blockingManager.getBlockedKeywords().toList())
-                }
-                "saveBlockedKeywords" -> {
-                    val keywords = call.arguments as List<String>
-                    for (k in keywords) blockingManager.blockKeyword(k)
-                    val current = blockingManager.getBlockedKeywords()
-                    for (k in current) if (!keywords.contains(k)) blockingManager.unblockKeyword(k)
-                    result.success(null)
-                }
-                "getInstalledApps" -> {
-                    val apps = blockingManager.getInstalledUserApps().map { 
-                        mapOf("packageName" to it.packageName, "appName" to it.appName)
-                    }
-                    result.success(apps)
-                }
-                "getAppLimits" -> {
-                    result.success(blockingManager.getAppLimits())
-                }
-                "setAppLimit" -> {
-                    val pkg = call.argument<String>("packageName")
-                    val mins = call.argument<Int>("minutes")
-                    if (pkg != null && mins != null) {
-                        blockingManager.setAppLimit(pkg, mins)
-                    }
-                    result.success(null)
-                }
-                "getGuardianBlocks" -> {
-                    result.success(blockingManager.getGuardianBlocks())
-                }
-                "saveGuardianBlocks" -> {
-                    val blocks = call.arguments as List<String>
-                    blockingManager.syncGuardianBlocks(blocks)
-                    result.success(null)
-                }
-                "getDailyUsage" -> {
-                    val pkg = call.argument<String>("packageName")
-                    if (pkg != null) {
-                        result.success(blockingManager.getDailyUsageMinutes(pkg))
-                    } else {
-                        result.error("INVALID_ARG", "Package name required", null)
-                    }
-                }
                 else -> result.notImplemented()
             }
         }
-    }
-
-    override fun onCreate(savedInstanceState: android.os.Bundle?) {
-        super.onCreate(savedInstanceState)
-        
-        blockingManager = AppBlockingManager.getInstance(this)
-        scheduleExt = ScheduleBlockingExtension(this, blockingManager)
-        scheduleExt.loadAndApplySchedules()
-
-        if (blockingManager.hasUsageStatsPermission()) {
-            AppMonitorService.start(this)
-            scheduleExt.startScheduleMonitoring()
-        } else {
-            blockingManager.requestUsageStatsPermission()
-        }
-
-        if (!blockingManager.hasAccessibilityPermission()) {
-            blockingManager.requestAccessibilityPermission()
-        }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        if (::blockingManager.isInitialized && ::scheduleExt.isInitialized) {
-            if (blockingManager.hasUsageStatsPermission() && !AppMonitorService.isRunning) {
-                AppMonitorService.start(this)
-                scheduleExt.startScheduleMonitoring()
-            }
-        }
-    }
-
-    override fun onDestroy() {
-        if (::scheduleExt.isInitialized) {
-            scheduleExt.stopScheduleMonitoring()
-        }
-        super.onDestroy()
     }
 
     private fun startLockdown() {
@@ -190,16 +162,15 @@ class MainActivity: FlutterActivity() {
             override fun run() {
                 if (isLockdownActive) {
                     if (!isInLockTaskMode()) {
-                        // User unpinned the app!
                         notifyFlutterUnpinned()
-                        isLockdownActive = false // Deactivate locally to stop double-triggering
+                        isLockdownActive = false
                     } else {
                         handler.postDelayed(this, 1000)
                     }
                 }
             }
         }
-        handler.postDelayed(monitoringTask!!, 2000) // Start checking after 2 seconds
+        handler.postDelayed(monitoringTask!!, 2000)
     }
 
     private fun stopMonitoringUnpin() {

@@ -4,10 +4,12 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
 import android.widget.Button
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 
 class BlockScreenActivity : Activity() {
@@ -28,17 +30,17 @@ class BlockScreenActivity : Activity() {
             WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
         )
 
-        val layout = android.widget.LinearLayout(this).apply {
-            orientation = android.widget.LinearLayout.VERTICAL
-            gravity = android.view.Gravity.CENTER
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
             setBackgroundColor(android.graphics.Color.parseColor("#1A1A2E"))
             setPadding(64, 64, 64, 64)
         }
 
         val iconView = ImageView(this).apply {
             setImageResource(android.R.drawable.ic_lock_lock)
-            layoutParams = android.widget.LinearLayout.LayoutParams(200, 200).apply {
-                gravity = android.view.Gravity.CENTER_HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(200, 200).apply {
+                gravity = Gravity.CENTER_HORIZONTAL
                 bottomMargin = 48
             }
             setColorFilter(android.graphics.Color.parseColor("#E94560"))
@@ -48,11 +50,11 @@ class BlockScreenActivity : Activity() {
             text = "Access Blocked"
             textSize = 28f
             setTextColor(android.graphics.Color.WHITE)
-            gravity = android.view.Gravity.CENTER
+            gravity = Gravity.CENTER
             typeface = android.graphics.Typeface.DEFAULT_BOLD
-            layoutParams = android.widget.LinearLayout.LayoutParams(
-                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
-                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply { bottomMargin = 24 }
         }
 
@@ -64,10 +66,10 @@ class BlockScreenActivity : Activity() {
                    else "\"$appName\" is restricted."
             textSize = 16f
             setTextColor(android.graphics.Color.parseColor("#AAAAAA"))
-            gravity = android.view.Gravity.CENTER
-            layoutParams = android.widget.LinearLayout.LayoutParams(
-                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
-                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply { bottomMargin = 48 }
         }
 
@@ -76,9 +78,9 @@ class BlockScreenActivity : Activity() {
             textSize = 16f
             setTextColor(android.graphics.Color.WHITE)
             setBackgroundColor(android.graphics.Color.parseColor("#E94560"))
-            layoutParams = android.widget.LinearLayout.LayoutParams(
-                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
-                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply { bottomMargin = 16 }
             setOnClickListener { goHome() }
         }
@@ -88,7 +90,7 @@ class BlockScreenActivity : Activity() {
             text = ""
             textSize = 13f
             setTextColor(android.graphics.Color.parseColor("#666666"))
-            gravity = android.view.Gravity.CENTER
+            gravity = Gravity.CENTER
         }
 
         layout.addView(iconView)

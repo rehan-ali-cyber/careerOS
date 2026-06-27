@@ -35,12 +35,6 @@ data class BlockSchedule(
     }
 }
 
-data class AppLimit(
-    val packageName: String,
-    val dailyLimitMinutes: Int,
-    val isEnabled: Boolean = true
-)
-
 data class BlockingEvent(
     val packageName: String,
     val appName: String,

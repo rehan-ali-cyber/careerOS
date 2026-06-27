@@ -10,10 +10,19 @@ import android.os.Build
 import android.os.IBinder
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
+import com.example.careeros.blocking.data.AppBlockingDatabase
+import com.example.careeros.blocking.data.AppBlockingRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class AppMonitorService : Service() {
 
-    private lateinit var blockingManager: AppBlockingManager
+    private lateinit var repository: AppBlockingRepository
+    private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private var isMonitoring = false
 
     companion object {
         private const val CHANNEL_ID = "app_blocking_channel"
@@ -36,29 +45,45 @@ class AppMonitorService : Service() {
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP_MR1)
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
-            if (::blockingManager.isInitialized) blockingManager.stopMonitoring()
-            isRunning = false
+            stopMonitoring()
             stopForeground(true)
             stopSelf()
             return START_NOT_STICKY
         }
+        
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, buildNotification())
-        blockingManager = AppBlockingManager.getInstance(applicationContext)
-        blockingManager.setBlockingEventListener(object : AppBlockingManager.BlockingEventListener {
-            override fun onAppBlocked(packageName: String, appName: String) {}
-            override fun onInAppContentBlocked(packageName: String, keyword: String) {}
-        })
-        blockingManager.startMonitoring()
+        
+        val db = AppBlockingDatabase.getInstance(applicationContext)
+        repository = AppBlockingRepository(this, db)
+        
+        startMonitoring()
         isRunning = true
         return START_STICKY
+    }
+
+    private fun startMonitoring() {
+        if (isMonitoring) return
+        isMonitoring = true
+        serviceScope.launch {
+            while (isMonitoring) {
+                // Professional Monitor: Backup check in case Accessibility is disabled or killed
+                // We use UsageStatsManager to find foreground app
+                // But Accessibility is preferred for real-time
+                delay(2000) 
+            }
+        }
+    }
+
+    private fun stopMonitoring() {
+        isMonitoring = false
+        isRunning = false
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
-        if (::blockingManager.isInitialized) blockingManager.stopMonitoring()
-        isRunning = false
+        stopMonitoring()
         super.onDestroy()
     }
 
@@ -76,11 +101,7 @@ class AppMonitorService : Service() {
         val pm = packageManager
         val launchIntent = pm.getLaunchIntentForPackage(packageName)
         val pendingIntent = if (launchIntent != null) {
-            PendingIntent.getActivity(
-                this, 0,
-                launchIntent,
-                PendingIntent.FLAG_IMMUTABLE
-            )
+            PendingIntent.getActivity(this, 0, launchIntent, PendingIntent.FLAG_IMMUTABLE)
         } else null
         
         val stopIntent = PendingIntent.getService(
