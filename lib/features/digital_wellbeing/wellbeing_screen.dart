@@ -7,6 +7,7 @@ import 'package:installed_apps/app_info.dart';
 import '../../core/providers/wellbeing_provider.dart';
 import '../../core/widgets/neomorphic/neumorphic_container.dart';
 import 'dart:ui';
+import 'package:flutter/services.dart';
 
 String _formatDuration(int minutes) {
   if (minutes < 60) return "${minutes}m";
@@ -14,8 +15,6 @@ String _formatDuration(int minutes) {
   final m = minutes % 60;
   return m == 0 ? "${h}h" : "${h}h ${m}m";
 }
-
-import 'package:flutter/services.dart';
 
 class WellbeingScreen extends ConsumerStatefulWidget {
   const WellbeingScreen({super.key});
@@ -71,8 +70,9 @@ class _WellbeingScreenState extends ConsumerState<WellbeingScreen> with WidgetsB
   void _addKeyword(String keyword) async {
     if (keyword.isEmpty) return;
     final newList = List<String>.from(_blockedKeywords);
-    if (!newList.contains(keyword.lowercase())) {
-      newList.add(keyword.lowercase());
+    final lower = keyword.toLowerCase();
+    if (!newList.contains(lower)) {
+      newList.add(lower);
       setState(() => _blockedKeywords = newList);
       await _channel.invokeMethod('saveBlockedKeywords', newList);
     }
