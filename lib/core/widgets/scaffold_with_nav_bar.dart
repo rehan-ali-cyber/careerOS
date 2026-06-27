@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:ui';
 import 'neomorphic/neumorphic_container.dart';
 import '../../features/chat/providers/career_pilot_provider.dart';
+import '../../features/sovereign_guard/guard_screen.dart';
 import '../providers/database_provider.dart';
 import '../providers/drawer_provider.dart';
 import '../providers/ui_state_provider.dart';
@@ -103,6 +104,14 @@ class _CareerOSDrawer extends ConsumerWidget {
                   final zenNotifier = ref.read(zenProvider.notifier);
                   Navigator.of(context).pop();
                   _showZenEntryDialog(context, zenNotifier);
+                },
+              ),
+              _DrawerItem(
+                icon: Icons.security_rounded,
+                label: 'Sovereign Guard',
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.push(context, MaterialPageRoute(builder: (c) => const GuardScreen()));
                 },
               ),
               _DrawerItem(
