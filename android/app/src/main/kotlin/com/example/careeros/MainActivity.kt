@@ -15,6 +15,9 @@ import android.os.UserManager
 import android.view.KeyEvent
 import android.view.View
 import android.view.WindowManager
+import com.example.careeros.blocking.AppBlockingManager
+import com.example.careeros.blocking.AppMonitorService
+import com.example.careeros.blocking.ScheduleBlockingExtension
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -28,6 +31,9 @@ class MainActivity: FlutterActivity() {
     
     private val handler = Handler(Looper.getMainLooper())
     private var monitoringTask: Runnable? = null
+
+    private lateinit var blockingManager: AppBlockingManager
+    private lateinit var scheduleExt: ScheduleBlockingExtension
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -57,9 +63,74 @@ class MainActivity: FlutterActivity() {
                 "isDeviceOwner" -> {
                     result.success(isDeviceOwner())
                 }
+                // App Blocker Methods
+                "getBlockedApps" -> {
+                    result.success(blockingManager.getBlockedApps().toList())
+                }
+                "saveBlockedApps" -> {
+                    val apps = call.arguments as List<String>
+                    for (pkg in apps) blockingManager.blockApp(pkg)
+                    // Also need to handle removal
+                    val current = blockingManager.getBlockedApps()
+                    for (pkg in current) if (!apps.contains(pkg)) blockingManager.unblockApp(pkg)
+                    result.success(null)
+                }
+                "getBlockedKeywords" -> {
+                    result.success(blockingManager.getBlockedKeywords().toList())
+                }
+                "saveBlockedKeywords" -> {
+                    val keywords = call.arguments as List<String>
+                    for (k in keywords) blockingManager.blockKeyword(k)
+                    val current = blockingManager.getBlockedKeywords()
+                    for (k in current) if (!keywords.contains(k)) blockingManager.unblockKeyword(k)
+                    result.success(null)
+                }
+                "getInstalledApps" -> {
+                    val apps = blockingManager.getInstalledUserApps().map { 
+                        mapOf("packageName" to it.packageName, "appName" to it.appName)
+                    }
+                    result.success(apps)
+                }
                 else -> result.notImplemented()
             }
         }
+    }
+
+    override fun onCreate(savedInstanceState: android.os.Bundle?) {
+        super.onCreate(savedInstanceState)
+        
+        blockingManager = AppBlockingManager(this)
+        blockingManager.loadSavedRules()
+        scheduleExt = ScheduleBlockingExtension(this, blockingManager)
+        scheduleExt.loadAndApplySchedules()
+
+        if (blockingManager.hasUsageStatsPermission()) {
+            AppMonitorService.start(this)
+            scheduleExt.startScheduleMonitoring()
+        } else {
+            blockingManager.requestUsageStatsPermission()
+        }
+
+        if (!blockingManager.hasAccessibilityPermission()) {
+            blockingManager.requestAccessibilityPermission()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::blockingManager.isInitialized && ::scheduleExt.isInitialized) {
+            if (blockingManager.hasUsageStatsPermission() && !AppMonitorService.isRunning) {
+                AppMonitorService.start(this)
+                scheduleExt.startScheduleMonitoring()
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        if (::scheduleExt.isInitialized) {
+            scheduleExt.stopScheduleMonitoring()
+        }
+        super.onDestroy()
     }
 
     private fun startLockdown() {

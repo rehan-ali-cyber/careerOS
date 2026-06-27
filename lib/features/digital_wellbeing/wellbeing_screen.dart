@@ -15,6 +15,8 @@ String _formatDuration(int minutes) {
   return m == 0 ? "${h}h" : "${h}h ${m}m";
 }
 
+import 'package:flutter/services.dart';
+
 class WellbeingScreen extends ConsumerStatefulWidget {
   const WellbeingScreen({super.key});
 
@@ -23,11 +25,64 @@ class WellbeingScreen extends ConsumerStatefulWidget {
 }
 
 class _WellbeingScreenState extends ConsumerState<WellbeingScreen> with WidgetsBindingObserver {
+  static const _channel = MethodChannel('com.example.careeros/lockdown');
+
+  List<String> _blockedApps = [];
+  List<Map<String, String>> _allApps = [];
+  List<String> _blockedKeywords = [];
+  bool _isAppsLoading = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _loadBlockingData();
+  }
+
+  Future<void> _loadBlockingData() async {
+    setState(() => _isAppsLoading = true);
+    try {
+      final List<dynamic>? blocked = await _channel.invokeMethod('getBlockedApps');
+      final List<dynamic>? keywords = await _channel.invokeMethod('getBlockedKeywords');
+      final List<dynamic>? installed = await _channel.invokeMethod('getInstalledApps');
+
+      if (mounted) {
+        setState(() {
+          _blockedApps = List<String>.from(blocked ?? []);
+          _blockedKeywords = List<String>.from(keywords ?? []);
+          _allApps = (installed ?? []).map((e) => Map<String, String>.from(e)).toList();
+          _isAppsLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isAppsLoading = false);
+    }
+  }
+
+  Future<void> _toggleAppBlock(String packageName) async {
+    final newList = List<String>.from(_blockedApps);
+    if (newList.contains(packageName)) newList.remove(packageName);
+    else newList.add(packageName);
+
+    setState(() => _blockedApps = newList);
+    await _channel.invokeMethod('saveBlockedApps', newList);
+  }
+
+  void _addKeyword(String keyword) async {
+    if (keyword.isEmpty) return;
+    final newList = List<String>.from(_blockedKeywords);
+    if (!newList.contains(keyword.lowercase())) {
+      newList.add(keyword.lowercase());
+      setState(() => _blockedKeywords = newList);
+      await _channel.invokeMethod('saveBlockedKeywords', newList);
+    }
+  }
+
+  void _removeKeyword(String keyword) async {
+    final newList = List<String>.from(_blockedKeywords);
+    newList.remove(keyword);
+    setState(() => _blockedKeywords = newList);
+    await _channel.invokeMethod('saveBlockedKeywords', newList);
   }
 
   @override
@@ -42,6 +97,7 @@ class _WellbeingScreenState extends ConsumerState<WellbeingScreen> with WidgetsB
       // Refresh permissions when user returns from settings
       ref.refresh(hasUsagePermissionProvider);
       ref.refresh(systemUsageProvider);
+      _loadBlockingData();
     }
   }
 
@@ -63,6 +119,7 @@ class _WellbeingScreenState extends ConsumerState<WellbeingScreen> with WidgetsB
             onPressed: () {
                ref.refresh(systemUsageProvider);
                ref.refresh(hasUsagePermissionProvider);
+               _loadBlockingData();
             },
           ),
         ],
@@ -96,6 +153,14 @@ class _WellbeingScreenState extends ConsumerState<WellbeingScreen> with WidgetsB
                   children: [
                     _UsageStatsOverview(stats: data),
                     const SizedBox(height: 40),
+
+                    _buildSectionLabel("SOVEREIGN GUARD: APP BLOCKER", theme),
+                    _buildAppBlockerSection(theme),
+                    const SizedBox(height: 40),
+
+                    _buildSectionLabel("CONTENT BLOCKER: KEYWORDS", theme),
+                    _buildKeywordBlockerSection(theme),
+                    const SizedBox(height: 40),
                   ],
                 ),
                 loading: () => const _LoadingStats(),
@@ -105,6 +170,135 @@ class _WellbeingScreenState extends ConsumerState<WellbeingScreen> with WidgetsB
               const SizedBox(height: 120),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAppBlockerSection(ThemeData theme) {
+    if (_isAppsLoading) return const Center(child: CircularProgressIndicator());
+
+    return NeumorphicContainer(
+      borderRadius: 30,
+      depth: 10,
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              "Restricted applications will be immediately terminated upon detection.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.4), fontSize: 11),
+            ),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 300,
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              itemCount: _allApps.length,
+              itemBuilder: (context, index) {
+                final app = _allApps[index];
+                final pkg = app['packageName']!;
+                final name = app['appName']!;
+                final isBlocked = _blockedApps.contains(pkg);
+
+                return ListTile(
+                  title: Text(name, style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14, fontWeight: FontWeight.bold)),
+                  subtitle: Text(pkg, style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.3), fontSize: 10)),
+                  trailing: Switch(
+                    value: isBlocked,
+                    onChanged: (_) => _toggleAppBlock(pkg),
+                    activeColor: theme.colorScheme.primary,
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildKeywordBlockerSection(ThemeData theme) {
+    final controller = TextEditingController();
+    return NeumorphicContainer(
+      borderRadius: 30,
+      depth: 10,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: NeumorphicContainer(
+                  borderRadius: 15,
+                  depth: 2,
+                  isPressed: true,
+                  child: TextField(
+                    controller: controller,
+                    style: TextStyle(color: theme.colorScheme.onSurface),
+                    decoration: InputDecoration(
+                      hintText: "Add Restricted Keyword...",
+                      hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.2)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                      border: InputBorder.none,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              NeumorphicContainer(
+                shape: BoxShape.circle,
+                depth: 4,
+                child: IconButton(
+                  icon: Icon(Icons.add, color: theme.colorScheme.primary),
+                  onPressed: () {
+                    _addKeyword(controller.text);
+                    controller.clear();
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: _blockedKeywords.map((k) => NeumorphicContainer(
+              borderRadius: 12,
+              depth: 2,
+              baseColor: theme.colorScheme.primary.withOpacity(0.1),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(k, style: TextStyle(color: theme.colorScheme.primary, fontSize: 11, fontWeight: FontWeight.bold)),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => _removeKeyword(k),
+                    child: Icon(Icons.close, size: 14, color: theme.colorScheme.primary),
+                  ),
+                ],
+              ),
+            )).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionLabel(String label, ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 12),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: theme.colorScheme.onSurface.withOpacity(0.2),
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 2
         ),
       ),
     );

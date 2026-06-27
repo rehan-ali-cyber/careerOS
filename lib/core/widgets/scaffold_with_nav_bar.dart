@@ -79,22 +79,23 @@ class _CareerOSDrawer extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pilot = ref.watch(careerPilotProvider.notifier);
+    final theme = Theme.of(context);
 
     return Drawer(
-      backgroundColor: const Color(0xFF1A1A1A),
+      backgroundColor: theme.scaffoldBackgroundColor,
       child: SafeArea(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24),
-                child: Divider(color: Colors.white10, height: 1),
+              _buildHeader(theme),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Divider(color: theme.colorScheme.onSurface.withOpacity(0.05), height: 1),
               ),
 
-              _buildSectionTitle("DEEP FOCUS"),
+              _buildSectionTitle("DEEP FOCUS", theme),
               _DrawerItem(
                 icon: Icons.spa_outlined,
                 label: 'Enter Zen Sanctuary',
@@ -113,12 +114,12 @@ class _CareerOSDrawer extends ConsumerWidget {
                 },
               ),
 
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                child: Divider(color: Colors.white10),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                child: Divider(color: theme.colorScheme.onSurface.withOpacity(0.05)),
               ),
 
-              _buildSectionTitle("AI CO-PILOT SESSIONS"),
+              _buildSectionTitle("AI CO-PILOT SESSIONS", theme),
               _DrawerItem(
                 icon: Icons.chat_bubble_outline_rounded,
                 label: 'New Normal Chat',
@@ -144,12 +145,12 @@ class _CareerOSDrawer extends ConsumerWidget {
                 },
               ),
 
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                child: Divider(color: Colors.white10),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                child: Divider(color: theme.colorScheme.onSurface.withOpacity(0.05)),
               ),
 
-              _buildSectionTitle("VOYAGE METRICS"),
+              _buildSectionTitle("VOYAGE METRICS", theme),
               _DrawerItem(
                 icon: Icons.history_outlined,
                 label: 'Career Milestones',
@@ -177,7 +178,7 @@ class _CareerOSDrawer extends ConsumerWidget {
               ),
 
               const SizedBox(height: 60),
-              _buildFooter(),
+              _buildFooter(theme),
             ],
           ),
         ),
@@ -185,9 +186,9 @@ class _CareerOSDrawer extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader() {
-    return const Padding(
-      padding: EdgeInsets.all(28.0),
+  Widget _buildHeader(ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.all(28.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -196,55 +197,70 @@ class _CareerOSDrawer extends ConsumerWidget {
             style: TextStyle(
               fontSize: 30,
               fontWeight: FontWeight.w900,
-              color: Colors.white,
+              color: theme.colorScheme.onSurface,
               letterSpacing: -1.5,
             ),
           ),
           Text(
             'Sovereign Navigation System',
-            style: TextStyle(color: Colors.cyanAccent, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
+            style: TextStyle(color: theme.colorScheme.primary, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(String title, ThemeData theme) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
       child: Text(
         title,
-        style: TextStyle(color: Colors.white.withOpacity(0.2), fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 2),
+        style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.2), fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 2),
       ),
     );
   }
 
-  Widget _buildFooter() {
-    return const Padding(
-      padding: EdgeInsets.all(24.0),
+  Widget _buildFooter(ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
       child: Text(
         'VERSION 2.5.5 | SUPREME EDITION',
-        style: TextStyle(color: Colors.white12, fontSize: 8, fontWeight: FontWeight.bold, letterSpacing: 2),
+        style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.12), fontSize: 8, fontWeight: FontWeight.bold, letterSpacing: 2),
       ),
     );
   }
 
   void _confirmClearChat(BuildContext context, CareerPilotNotifier pilot) {
+    final theme = Theme.of(context);
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32), side: const BorderSide(color: Colors.white10)),
-        title: const Text('Purge History?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
-        content: const Text('This will permanently delete the current conversation logs.', style: TextStyle(color: Colors.white54, fontSize: 13)),
+        backgroundColor: theme.scaffoldBackgroundColor,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(32),
+            side: BorderSide(color: theme.colorScheme.onSurface.withOpacity(0.1))),
+        title: Text('Purge History?',
+            style: TextStyle(
+                color: theme.colorScheme.onSurface,
+                fontWeight: FontWeight.w900)),
+        content: Text('This will permanently delete the current conversation logs.',
+            style: TextStyle(
+                color: theme.colorScheme.onSurface.withOpacity(0.54),
+                fontSize: 13)),
         actions: [
-          TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('CANCEL', style: TextStyle(color: Colors.white24))),
+          TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text('CANCEL',
+                  style: TextStyle(
+                      color: theme.colorScheme.onSurface.withOpacity(0.24)))),
           TextButton(
             onPressed: () {
               Navigator.of(dialogContext).pop();
               pilot.startNormalChat().then((_) => navigationShell.goBranch(0));
             },
-            child: const Text('CONFIRM PURGE', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+            child: const Text('CONFIRM PURGE',
+                style: TextStyle(
+                    color: Colors.redAccent, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -252,21 +268,36 @@ class _CareerOSDrawer extends ConsumerWidget {
   }
 
   void _confirmResetCounseling(BuildContext context, CareerPilotNotifier pilot) {
+    final theme = Theme.of(context);
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32), side: const BorderSide(color: Colors.white10)),
-        title: const Text('Full Reset?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
-        content: const Text('This resets your entire career profile and discovery journey.', style: TextStyle(color: Colors.white54, fontSize: 13)),
+        backgroundColor: theme.scaffoldBackgroundColor,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(32),
+            side: BorderSide(color: theme.colorScheme.onSurface.withOpacity(0.1))),
+        title: Text('Full Reset?',
+            style: TextStyle(
+                color: theme.colorScheme.onSurface,
+                fontWeight: FontWeight.w900)),
+        content: Text('This resets your entire career profile and discovery journey.',
+            style: TextStyle(
+                color: theme.colorScheme.onSurface.withOpacity(0.54),
+                fontSize: 13)),
         actions: [
-          TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('CANCEL', style: TextStyle(color: Colors.white24))),
+          TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text('CANCEL',
+                  style: TextStyle(
+                      color: theme.colorScheme.onSurface.withOpacity(0.24)))),
           TextButton(
             onPressed: () {
               Navigator.of(dialogContext).pop();
               pilot.startDeepCounseling();
             },
-            child: const Text('ENGAGE RESET', style: TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold)),
+            child: const Text('ENGAGE RESET',
+                style: TextStyle(
+                    color: Colors.orangeAccent, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -275,17 +306,27 @@ class _CareerOSDrawer extends ConsumerWidget {
 
   void _showZenEntryDialog(BuildContext context, ZenNotifier zenNotifier) {
     int selectedMinutes = 30;
+    final theme = Theme.of(context);
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: const Color(0xFF1A1A1A),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32), side: const BorderSide(color: Colors.white10)),
-          title: const Text("ZEN SANCTUARY", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w200, letterSpacing: 2)),
+          backgroundColor: theme.scaffoldBackgroundColor,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(32),
+              side: BorderSide(color: theme.colorScheme.onSurface.withOpacity(0.1))),
+          title: Text("ZEN SANCTUARY",
+              style: TextStyle(
+                  color: theme.colorScheme.onSurface,
+                  fontWeight: FontWeight.w200,
+                  letterSpacing: 2)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text("Select duration for deep sea focus.", style: TextStyle(color: Colors.white38, fontSize: 12)),
+              Text("Select duration for deep sea focus.",
+                  style: TextStyle(
+                      color: theme.colorScheme.onSurface.withOpacity(0.38),
+                      fontSize: 12)),
               const SizedBox(height: 30),
               Wrap(
                 spacing: 12,
@@ -295,22 +336,26 @@ class _CareerOSDrawer extends ConsumerWidget {
                   label: Text("$m min"),
                   selected: selectedMinutes == m,
                   onSelected: (s) => setDialogState(() => selectedMinutes = m),
-                  backgroundColor: Colors.white.withOpacity(0.02),
-                  selectedColor: Colors.cyanAccent.withOpacity(0.1),
-                  labelStyle: TextStyle(color: selectedMinutes == m ? Colors.cyanAccent : Colors.white24, fontWeight: FontWeight.bold),
+                  backgroundColor: theme.colorScheme.onSurface.withOpacity(0.02),
+                  selectedColor: theme.colorScheme.primary.withOpacity(0.1),
+                  labelStyle: TextStyle(color: selectedMinutes == m ? theme.colorScheme.primary : theme.colorScheme.onSurface.withOpacity(0.24), fontWeight: FontWeight.bold),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 )).toList(),
               ),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("ABORT", style: TextStyle(color: Colors.white12))),
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text("ABORT",
+                    style: TextStyle(
+                        color: theme.colorScheme.onSurface.withOpacity(0.12)))),
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
                 Navigator.push(context, MaterialPageRoute(builder: (c) => ZenShieldChecklistScreen(minutes: selectedMinutes, task: "Deep Study Voyage")));
               },
-              child: const Text("INITIALIZE", style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.w900)),
+              child: Text("INITIALIZE", style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.w900)),
             ),
           ],
         ),
@@ -328,14 +373,15 @@ class _DrawerItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Material(
       color: Colors.transparent,
       child: ListTile(
-        leading: Icon(icon, color: Colors.white30, size: 22),
-        title: Text(label, style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w400)),
+        leading: Icon(icon, color: theme.colorScheme.onSurface.withOpacity(0.3), size: 22),
+        title: Text(label, style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7), fontSize: 14, fontWeight: FontWeight.w400)),
         onTap: onTap,
         contentPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 2),
-        hoverColor: Colors.white.withOpacity(0.02),
+        hoverColor: theme.colorScheme.onSurface.withOpacity(0.02),
       ),
     );
   }
