@@ -140,7 +140,6 @@ class _NeumorphicInputArea extends StatelessWidget {
                   mini: true,
                   backgroundColor: Colors.transparent,
                   elevation: 0,
-                  shadowColor: Colors.transparent,
                   child: const Icon(Icons.send, color: Colors.cyanAccent),
                 ),
               ),

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:ui';
-import '../../core/theme/glass_theme.dart';
 import '../../core/widgets/beautiful_background.dart';
+import '../../core/widgets/neomorphic/neumorphic_container.dart';
 import '../../core/providers/drawer_provider.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/persistence/app_database.dart';
@@ -76,51 +76,53 @@ class _ScholarStreamScreenState extends ConsumerState<ScholarStreamScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFF1A1A1A),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white24, size: 22),
-          onPressed: () => Navigator.pop(context),
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: NeumorphicContainer(
+            shape: BoxShape.circle,
+            depth: 4,
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
         ),
         title: const Text("SCHOLAR STREAM", style: TextStyle(fontWeight: FontWeight.w200, letterSpacing: 5, fontSize: 13, color: Colors.white24)),
       ),
-      body: Stack(
-        children: [
-          const BeautifulBackground(),
-          SafeArea(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 20),
-                  _buildHeader(),
-                  const SizedBox(height: 40),
-                  _buildLinkInput(),
-                  const SizedBox(height: 40),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 20),
+              _buildHeader(),
+              const SizedBox(height: 40),
+              _buildLinkInput(),
+              const SizedBox(height: 40),
 
-                  _buildSectionLabel("MISSION ANALYTICS"),
-                  _buildLearningLedgerCard(),
+              _buildSectionLabel("MISSION ANALYTICS"),
+              _buildLearningLedgerCard(),
 
-                  const SizedBox(height: 32),
-                  _buildSectionLabel(_videos.isEmpty ? "VOYAGE CHANNELS" : "VOYAGE SYLLABUS"),
+              const SizedBox(height: 32),
+              _buildSectionLabel(_videos.isEmpty ? "VOYAGE CHANNELS" : "VOYAGE SYLLABUS"),
 
-                  if (_isLoading)
-                    const _LoadingVessel()
-                  else if (_videos.isEmpty)
-                    _buildDemoButton()
-                  else
-                    ..._videos.map((v) => _VideoModuleTile(video: v)),
+              if (_isLoading)
+                const _LoadingVessel()
+              else if (_videos.isEmpty)
+                _buildDemoButton()
+              else
+                ..._videos.map((v) => _VideoModuleTile(video: v)),
 
-                  const SizedBox(height: 120),
-                ],
-              ),
-            ),
+              const SizedBox(height: 120),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -158,16 +160,20 @@ class _ScholarStreamScreenState extends ConsumerState<ScholarStreamScreen> {
   }
 
   Widget _buildLinkInput() {
-    return Container(
-      decoration: GlassTheme.glassDecoration(opacity: 0.05),
-      child: GlassTheme.glassLayer(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          child: Row(
-            children: [
-              const Icon(Icons.hub_outlined, color: Colors.white12, size: 20),
-              const SizedBox(width: 16),
-              Expanded(
+    return NeumorphicContainer(
+      borderRadius: 24,
+      depth: 6,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        child: Row(
+          children: [
+            const Icon(Icons.hub_outlined, color: Colors.white12, size: 20),
+            const SizedBox(width: 16),
+            Expanded(
+              child: NeumorphicContainer(
+                borderRadius: 16,
+                isPressed: true,
+                depth: 2,
                 child: TextField(
                   controller: _linkController,
                   style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w300),
@@ -175,16 +181,22 @@ class _ScholarStreamScreenState extends ConsumerState<ScholarStreamScreen> {
                     hintText: "PASTE PLAYLIST LINK...",
                     hintStyle: TextStyle(color: Colors.white10, fontSize: 12, letterSpacing: 1),
                     border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12),
                   ),
                   onSubmitted: (_) => _processPlaylist(),
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.cyanAccent, size: 24),
+            ),
+            const SizedBox(width: 12),
+            NeumorphicContainer(
+              shape: BoxShape.circle,
+              depth: 4,
+              child: IconButton(
+                icon: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.cyanAccent, size: 20),
                 onPressed: () => _processPlaylist(),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     ).animate().fadeIn(delay: 400.ms).scale(begin: const Offset(0.98, 0.98));
@@ -202,20 +214,19 @@ class _ScholarStreamScreenState extends ConsumerState<ScholarStreamScreen> {
           avgSincerity = snapshot.data!.map((e) => e.sincerityScore).reduce((a, b) => a + b) / totalVideos;
         }
 
-        return Container(
-          decoration: GlassTheme.glassDecoration(opacity: 0.03),
-          child: GlassTheme.glassLayer(
-            child: Padding(
-              padding: const EdgeInsets.all(28),
-              child: Row(
-                children: [
-                  _CircularStat(label: "TOTAL LOGS", value: "$totalVideos"),
-                  const Spacer(),
-                  Container(width: 1, height: 40, color: Colors.white.withOpacity(0.05)),
-                  const Spacer(),
-                  _CircularStat(label: "AVG SINCERITY", value: "${avgSincerity.toInt()}%", color: Colors.cyanAccent),
-                ],
-              ),
+        return NeumorphicContainer(
+          borderRadius: 30,
+          depth: 10,
+          child: Padding(
+            padding: const EdgeInsets.all(28),
+            child: Row(
+              children: [
+                _CircularStat(label: "TOTAL LOGS", value: "$totalVideos"),
+                const Spacer(),
+                Container(width: 1, height: 40, color: Colors.white.withOpacity(0.05)),
+                const Spacer(),
+                _CircularStat(label: "AVG SINCERITY", value: "${avgSincerity.toInt()}%", color: Colors.cyanAccent),
+              ],
             ),
           ),
         );
@@ -224,42 +235,43 @@ class _ScholarStreamScreenState extends ConsumerState<ScholarStreamScreen> {
   }
 
   Widget _buildDemoButton() {
-    return Container(
-      decoration: GlassTheme.glassDecoration(opacity: 0.04),
-      child: GlassTheme.glassLayer(
-        child: InkWell(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (c) => const VideoPlayerScreen(
-                  videoId: "n2RNcPRtAiY",
-                  title: "Cinematic Voyage Primer",
-                )
+    return NeumorphicContainer(
+      borderRadius: 24,
+      depth: 8,
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (c) => const VideoPlayerScreen(
+                videoId: "n2RNcPRtAiY",
+                title: "Cinematic Voyage Primer",
               )
-            );
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: Colors.amber.withOpacity(0.05), shape: BoxShape.circle, border: Border.all(color: Colors.amber.withOpacity(0.1))),
-                  child: const Icon(Icons.play_arrow_rounded, color: Colors.amber, size: 28),
+            )
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Row(
+            children: [
+              NeumorphicContainer(
+                shape: BoxShape.circle,
+                depth: 4,
+                baseColor: Colors.amber.withOpacity(0.1),
+                padding: const EdgeInsets.all(12),
+                child: const Icon(Icons.play_arrow_rounded, color: Colors.amber, size: 28),
+              ),
+              const SizedBox(width: 20),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("DEMO VOYAGE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1)),
+                    Text("TEST THE SINCERITY ENGINE", style: TextStyle(color: Colors.white24, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                  ],
                 ),
-                const SizedBox(width: 20),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("DEMO VOYAGE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1)),
-                      Text("TEST THE SINCERITY ENGINE", style: TextStyle(color: Colors.white24, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -273,10 +285,11 @@ class _VideoModuleTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: GlassTheme.glassDecoration(opacity: 0.03),
-      child: GlassTheme.glassLayer(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: NeumorphicContainer(
+        borderRadius: 20,
+        depth: 6,
         child: InkWell(
           onTap: () {
             Navigator.push(
@@ -293,9 +306,13 @@ class _VideoModuleTile extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             child: Row(
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Image.network(video['thumbnail']!, width: 100, height: 60, fit: BoxFit.cover),
+                NeumorphicContainer(
+                  borderRadius: 16,
+                  depth: 2,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.network(video['thumbnail']!, width: 100, height: 60, fit: BoxFit.cover),
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -313,7 +330,7 @@ class _VideoModuleTile extends StatelessWidget {
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right_rounded, color: Colors.white.withOpacity(0.05)),
+                Icon(Icons.chevron_right_rounded, color: Colors.white.withOpacity(0.1)),
               ],
             ),
           ),
@@ -322,6 +339,7 @@ class _VideoModuleTile extends StatelessWidget {
     ).animate().fadeIn().slideX(begin: 0.05);
   }
 }
+
 
 class _LoadingVessel extends StatelessWidget {
   const _LoadingVessel();
