@@ -78,29 +78,31 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
     if (_isDialogShowing) return;
     _isDialogShowing = true;
 
+    final theme = Theme.of(context);
+
     showDialog(
       context: context,
       barrierDismissible: true, // Always allow clicking outside to close
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: theme.scaffoldBackgroundColor,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: Colors.cyanAccent.withOpacity(0.2)),
+          side: BorderSide(color: theme.colorScheme.primary.withOpacity(0.2)),
         ),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.security_update_warning_rounded, color: Colors.orangeAccent, size: 28),
-            SizedBox(width: 12),
-            Expanded(child: Text("Enable App Settings", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
+            const Icon(Icons.security_update_warning_rounded, color: Colors.orangeAccent, size: 28),
+            const SizedBox(width: 12),
+            Expanded(child: Text("Enable App Settings", style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold))),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               "Android 13+ restricts permissions for apps installed via APK.",
-              style: TextStyle(color: Colors.white70, fontSize: 14),
+              style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7), fontSize: 14),
             ),
             const SizedBox(height: 20),
             _stepRow("1", "Click 'OPEN SETTINGS' below"),
@@ -111,12 +113,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.cyanAccent.withOpacity(0.05),
+                color: theme.colorScheme.primary.withOpacity(0.05),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text(
+              child: Text(
                 "Required for Zen Mode & Digital Wellbeing.",
-                style: TextStyle(color: Colors.cyanAccent, fontSize: 12, fontWeight: FontWeight.w600),
+                style: TextStyle(color: theme.colorScheme.primary, fontSize: 12, fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -127,7 +129,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
               _isDialogShowing = false;
               Navigator.pop(context);
             },
-            child: const Text("MAYBE LATER", style: TextStyle(color: Colors.white38)),
+            child: Text("MAYBE LATER", style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.38))),
           ),
           ElevatedButton(
             onPressed: () {
@@ -135,8 +137,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
               // Don't close dialog yet, let the lifecycle check handle it or user can close manually
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.cyanAccent,
-              foregroundColor: Colors.black,
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.brightness == Brightness.dark ? Colors.black : Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             child: const Text("OPEN SETTINGS", style: TextStyle(fontWeight: FontWeight.bold)),
@@ -147,17 +149,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
   }
 
   Widget _stepRow(String number, String text) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
           CircleAvatar(
             radius: 10,
-            backgroundColor: Colors.white10,
-            child: Text(number, style: const TextStyle(color: Colors.cyanAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+            backgroundColor: theme.colorScheme.onSurface.withOpacity(0.1),
+            child: Text(number, style: TextStyle(color: theme.colorScheme.primary, fontSize: 10, fontWeight: FontWeight.bold)),
           ),
           const SizedBox(width: 12),
-          Expanded(child: Text(text, style: const TextStyle(color: Colors.white60, fontSize: 13))),
+          Expanded(child: Text(text, style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.6), fontSize: 13))),
         ],
       ),
     );
@@ -189,23 +192,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       extendBodyBehindAppBar: true,
-      body: Stack(
-        children: [
-          const Positioned.fill(child: BeautifulBackground()),
-          SafeArea(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 500),
-              child: _currentStep == 0 ? _buildInfoStep() : _buildPermissionStep(),
-            ),
-          ),
-        ],
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: SafeArea(
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 500),
+          child: _currentStep == 0 ? _buildInfoStep() : _buildPermissionStep(),
+        ),
       ),
     );
   }
 
   Widget _buildInfoStep() {
+    final theme = Theme.of(context);
     return Center(
       key: const ValueKey(0),
       child: SingleChildScrollView(
@@ -213,16 +214,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.rocket_launch_rounded, size: 80, color: Colors.cyanAccent),
+            Icon(Icons.rocket_launch_rounded, size: 80, color: theme.colorScheme.primary),
             const SizedBox(height: 24),
-            const Text(
+            Text(
               "Welcome to CareerOS",
-              style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -1),
+              style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: theme.colorScheme.onSurface, letterSpacing: -1),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               "Initialize your professional DNA",
-              style: TextStyle(color: Colors.white54, fontSize: 16),
+              style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.54), fontSize: 16),
             ),
             const SizedBox(height: 48),
             _buildGlassTextField(_nameController, "Your Name", Icons.person_outline),
@@ -234,13 +235,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
               height: 60,
               child: NeumorphicContainer(
                 borderRadius: 20,
-                baseColor: Colors.cyanAccent,
+                baseColor: theme.colorScheme.primary,
                 depth: 8,
                 child: ElevatedButton(
                   onPressed: _completeOnboarding,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
-                    foregroundColor: Colors.black,
+                    foregroundColor: theme.brightness == Brightness.dark ? Colors.black : Colors.white,
                     shadowColor: Colors.transparent,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   ),
@@ -255,6 +256,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
   }
 
   Widget _buildPermissionStep() {
+    final theme = Theme.of(context);
     return Center(
       key: const ValueKey(1),
       child: SingleChildScrollView(
@@ -262,17 +264,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.security_rounded, size: 60, color: Colors.cyanAccent),
+            Icon(Icons.security_rounded, size: 60, color: theme.colorScheme.primary),
             const SizedBox(height: 24),
-            const Text(
+            Text(
               "System Calibration",
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               "Zen Mode and Wellbeing features require specific authorities to protect your focus.",
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white54, fontSize: 14),
+              style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.54), fontSize: 14),
             ),
             const SizedBox(height: 40),
             _PermissionTile(
@@ -316,7 +318,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
                   onPressed: _finishSetup,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
-                    foregroundColor: Colors.white,
+                    foregroundColor: theme.colorScheme.primary,
                     shadowColor: Colors.transparent,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   ),
@@ -328,7 +330,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
             Text(
               "You can grant these now or skip and enable them later in settings.",
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white.withOpacity(0.2), fontSize: 11),
+              style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.2), fontSize: 11),
             ),
           ],
         ),
@@ -337,17 +339,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
   }
 
   Widget _buildGlassTextField(TextEditingController controller, String hint, IconData icon) {
+    final theme = Theme.of(context);
     return NeumorphicContainer(
       borderRadius: 20,
       depth: 4,
       isPressed: true, // Input fields look better debossed (pressed)
       child: TextField(
         controller: controller,
-        style: const TextStyle(color: Colors.white),
+        style: TextStyle(color: theme.colorScheme.onSurface),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(color: Colors.white.withOpacity(0.2)),
-          prefixIcon: Icon(icon, color: Colors.white38),
+          hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.2)),
+          prefixIcon: Icon(icon, color: theme.colorScheme.onSurface.withOpacity(0.38)),
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
           border: InputBorder.none,
         ),

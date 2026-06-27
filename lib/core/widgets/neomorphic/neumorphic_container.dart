@@ -34,9 +34,23 @@ class NeumorphicContainer extends StatelessWidget {
     final darkShadow = isDark ? Colors.black.withOpacity(0.4) : Colors.black.withOpacity(0.15);
     final lightShadow = isDark ? Colors.white.withOpacity(0.05) : Colors.white;
 
+    // RULE: Text color within a NeumorphicContainer should automatically respect the theme
+    // We wrap the child in a DefaultTextStyle to enforce this if not manually overridden
+    final defaultTextColor = theme.colorScheme.onSurface;
+
+    final content = DefaultTextStyle(
+      style: TextStyle(color: defaultTextColor),
+      child: IconTheme(
+        data: IconThemeData(color: defaultTextColor.withOpacity(0.7)),
+        child: Padding(
+          padding: padding,
+          child: child,
+        ),
+      ),
+    );
+
     if (isPressed) {
       return Container(
-        padding: padding,
         decoration: BoxDecoration(
           color: effectiveBaseColor,
           shape: shape,
@@ -84,10 +98,7 @@ class NeumorphicContainer extends StatelessWidget {
                   ),
                 ),
               ),
-              Padding(
-                padding: padding,
-                child: child,
-              ),
+              content,
             ],
           ),
         ),
@@ -95,7 +106,6 @@ class NeumorphicContainer extends StatelessWidget {
     }
 
     return Container(
-      padding: padding,
       decoration: BoxDecoration(
         color: effectiveBaseColor,
         shape: shape,
@@ -115,7 +125,7 @@ class NeumorphicContainer extends StatelessWidget {
           ),
         ],
       ),
-      child: child,
+      child: content,
     );
   }
 }

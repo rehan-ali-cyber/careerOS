@@ -59,9 +59,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               stream: messagesStream,
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
-                  return const Center(child: Text('Error loading history.', style: TextStyle(color: Colors.red)));
+                  return Center(child: Text('Error loading history.', style: TextStyle(color: Theme.of(context).colorScheme.error)));
                 }
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: Colors.white));
+                if (!snapshot.hasData) return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
 
                 final messages = snapshot.data!;
                 return ListView.builder(
@@ -121,10 +121,10 @@ class _NeumorphicInputArea extends StatelessWidget {
                   child: TextField(
                     controller: controller,
                     onSubmitted: (_) => onSend(),
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                     decoration: InputDecoration(
                       hintText: 'Talk to your Career Pilot...',
-                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.4)),
+                      hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4)),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                     ),
@@ -163,6 +163,7 @@ class ChatBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Align(
       alignment: isAi ? Alignment.centerLeft : Alignment.centerRight,
       child: Padding(
@@ -170,14 +171,16 @@ class ChatBubble extends StatelessWidget {
         child: NeumorphicContainer(
           borderRadius: 20,
           depth: 4,
-          baseColor: isAi ? const Color(0xFF202020) : const Color(0xFF1A1A1A),
+          baseColor: isAi
+              ? (theme.brightness == Brightness.dark ? const Color(0xFF202020) : Colors.white)
+              : (theme.brightness == Brightness.dark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5)),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
             constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
             child: Text(
               message,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: theme.colorScheme.onSurface,
                 fontSize: 15,
                 height: 1.4,
               ),
