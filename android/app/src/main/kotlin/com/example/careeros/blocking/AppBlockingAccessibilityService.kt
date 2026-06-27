@@ -2,9 +2,17 @@ package com.example.careeros.blocking
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
+import android.content.Context
+import android.graphics.Color
+import android.graphics.PixelFormat
 import android.util.Log
+import android.view.Gravity
+import android.view.LayoutInflater
+import android.view.View
+import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import android.widget.TextView
 
 class AppBlockingAccessibilityService : AccessibilityService() {
 
@@ -13,18 +21,30 @@ class AppBlockingAccessibilityService : AccessibilityService() {
     private var lastCheckedPackage: String? = null
     private var lastCheckedText: String? = null
 
+    // Overlay Management
+    private var windowManager: WindowManager? = null
+    private var overlayView: View? = null
+    private var isOverlayShowing = false
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         Log.d(TAG, "Accessibility Service Connected")
+        
+        windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        
         blockingManager = AppBlockingManager.getInstance(applicationContext)
         blockingManager.setBlockingEventListener(object : AppBlockingManager.BlockingEventListener {
             override fun onAppBlocked(packageName: String, appName: String) {}
             override fun onInAppContentBlocked(packageName: String, keyword: String) {}
             override fun requestSurgicalBack() {
-                Log.i(TAG, "Executing GLOBAL_ACTION_BACK for surgical block")
                 performGlobalAction(GLOBAL_ACTION_BACK)
             }
+            override fun requestOverlay(show: Boolean, message: String?) {
+                if (show) showOverlay(message ?: "Content Restricted")
+                else hideOverlay()
+            }
         })
+        
         serviceInfo = serviceInfo.apply {
             eventTypes = AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED or AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
             feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
@@ -32,6 +52,80 @@ class AppBlockingAccessibilityService : AccessibilityService() {
             flags = AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS or AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
         }
     }
+
+    private fun showOverlay(message: String) {
+        if (isOverlayShowing) {
+            overlayView?.findViewById<TextView>(android.R.id.text1)?.text = message
+            return
+        }
+
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.MATCH_PARENT,
+            (resources.displayMetrics.heightPixels * 0.85).toInt(), // Cover top 85%
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O)
+                WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
+            else
+                WindowManager.LayoutParams.TYPE_PHONE,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
+            PixelFormat.TRANSLUCENT
+        )
+
+        params.gravity = Gravity.TOP
+
+        overlayView = View(this).apply {
+            setBackgroundColor(Color.BLACK)
+            // Add a simple message
+            val tv = TextView(context).apply {
+                id = android.R.id.text1
+                text = message
+                setTextColor(Color.WHITE)
+                gravity = Gravity.CENTER
+                textSize = 20f
+            }
+            if (this is android.widget.FrameLayout) {
+                 // Not a framelayout by default, let's use a container
+            }
+        }
+
+        // Simpler approach for the overlay view
+        val container = android.widget.FrameLayout(this).apply {
+            setBackgroundColor(Color.parseColor("#EE000000")) // Semi-transparent black
+            val tv = TextView(this.context).apply {
+                id = android.R.id.text1
+                text = message
+                setTextColor(Color.WHITE)
+                textSize = 22f
+                gravity = Gravity.CENTER
+                setPadding(40, 40, 40, 40)
+            }
+            addView(tv, android.widget.FrameLayout.LayoutParams(
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT
+            ))
+        }
+
+        overlayView = container
+        
+        try {
+            windowManager?.addView(overlayView, params)
+            isOverlayShowing = true
+            Log.d(TAG, "Overlay Displayed")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to add overlay: ${e.message}")
+        }
+    }
+
+    private fun hideOverlay() {
+        if (!isOverlayShowing) return
+        try {
+            windowManager?.removeView(overlayView)
+            isOverlayShowing = false
+            Log.d(TAG, "Overlay Removed")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to remove overlay")
+        }
+    }
+
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         event ?: return

@@ -49,6 +49,7 @@ class AppBlockingManager private constructor(private val context: Context) {
         fun onAppBlocked(packageName: String, appName: String)
         fun onInAppContentBlocked(packageName: String, keyword: String)
         fun requestSurgicalBack() // New method to trigger a back press
+        fun requestOverlay(show: Boolean, message: String? = null) // New: Overlay toggle
     }
 
     fun setBlockingEventListener(l: BlockingEventListener?) { listener = l }
@@ -236,32 +237,40 @@ class AppBlockingManager private constructor(private val context: Context) {
         val isInstagram = packageName == "com.instagram.android"
         val isSnapchat = packageName == "com.snapchat.android"
         
-        // --- 1. YouTube Shorts (30s Grace then Full Block) ---
-        if (isYouTube && (lower.contains("shorts") || lower.contains("shorts tab"))) {
+        // Specialized Tags passed from Accessibility Service
+        val isShorts = screenText == "Shorts"
+        val isReels = screenText == "Reels"
+        val isSpotlight = screenText == "Spotlight"
+
+        // --- 1. YouTube Shorts ---
+        if (isYouTube && isShorts) {
             val now = System.currentTimeMillis()
             if (shortsStartTime == 0L) {
                 shortsStartTime = now
-                Log.d(TAG, "YT Shorts: Starting 30s grace...")
+                Log.d(TAG, "YT Shorts: Starting grace period")
             } else if (now - shortsStartTime > SHORTS_GRACE_PERIOD_MS) {
-                Log.w(TAG, "YT Shorts: Grace expired. Blocking App.")
-                shortsStartTime = 0L
-                showBlockScreen(packageName, "YouTube", "Time's up on Shorts!")
+                // Instead of blocking whole app, show OVERLAY
+                listener?.requestOverlay(true, "Shorts Blocked: Mission First!")
             }
             return
         }
 
-        // --- 2. Instagram Reels (Surgical Back - Immediate) ---
-        if (isInstagram && (lower.contains("reels") || lower.contains("reels tab"))) {
-            Log.w(TAG, "Insta Reels: Surgical Back Triggered")
-            listener?.requestSurgicalBack()
+        // --- 2. Instagram Reels ---
+        if (isInstagram && isReels) {
+            listener?.requestOverlay(true, "Reels Blocked: Focus Engaged!")
             return
         }
 
-        // --- 3. Snapchat Spotlight (Surgical Back - Immediate) ---
-        if (isSnapchat && (lower.contains("spotlight") || lower.contains("discover"))) {
-            Log.w(TAG, "Snap Spotlight: Surgical Back Triggered")
-            listener?.requestSurgicalBack()
+        // --- 3. Snapchat Spotlight ---
+        if (isSnapchat && isSpotlight) {
+            listener?.requestOverlay(true, "Spotlight Blocked: Stay Disciplined!")
             return
+        }
+
+        // If we reach here and it's one of these apps but NOT on addictive screen, HIDE overlay
+        if (isYouTube || isInstagram || isSnapchat) {
+            listener?.requestOverlay(false)
+            if (!isShorts) shortsStartTime = 0L
         }
 
         // Standard keyword check for other apps
