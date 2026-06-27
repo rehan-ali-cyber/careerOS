@@ -58,7 +58,6 @@ dependencies:
   usage_stats: ^2.0.1
   installed_apps: ^2.1.1
   shared_preferences: ^2.5.5
-  flutter_inset_box_shadow: ^1.0.8
 
 dev_dependencies:
   flutter_test:
